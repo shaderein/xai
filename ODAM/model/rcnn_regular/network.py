@@ -18,9 +18,9 @@ class Network(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.resnet50 = ResNet50(config.backbone_freeze_at, False)
-        self.FPN = FPN(self.resnet50, 2, 6)
-        self.RPN = RPN(config)
+        self.resnet50 = ResNet50(config.backbone_freeze_at, False) # Backbone
+        self.FPN = FPN(self.resnet50, 2, 6) # Neck: Feature Pyramid Networks
+        self.RPN = RPN(config) # Head: Region Proposal Network
         self.RCNN = RCNN(config)
 
     def forward(self, image, im_info, gt_boxes=None):
@@ -53,10 +53,14 @@ class Network(nn.Module):
         ## resnet50_fms p3-p5 (stride: 8,16,32)
         res_fms = res_fms[::-1]
         features = {
+            # feature pyramid network (feature levels used for prediction)
             'fpn': fpn_fms[1:][::-1],  # fpn_fms p2-p5 (stride: 4, 8, 16, 32)
-            'resnet_p3': res_fms[0],
-            'resnet_p4': res_fms[1],
-            'resnet_p5': res_fms[2]
+
+            # feature maps on backbone
+            'resnet_p2': res_fms[0],
+            'resnet_p3': res_fms[1],
+            'resnet_p4': res_fms[2],
+            'resnet_p5': res_fms[3],
         }        
         rpn_rois = self.RPN(fpn_fms, im_info)
         pred_bbox, pred_levels = self.RCNN(fpn_fms, rpn_rois)
