@@ -57,10 +57,9 @@ class Network(nn.Module):
             'fpn': fpn_fms[1:][::-1],  # fpn_fms p2-p5 (stride: 4, 8, 16, 32)
 
             # feature maps on backbone
-            'resnet_p2': res_fms[0],
-            'resnet_p3': res_fms[1],
-            'resnet_p4': res_fms[2],
-            'resnet_p5': res_fms[3],
+            'resnet_p3': res_fms[0],
+            'resnet_p4': res_fms[1],
+            'resnet_p5': res_fms[2]
         }        
         rpn_rois = self.RPN(fpn_fms, im_info)
         pred_bbox, pred_levels = self.RCNN(fpn_fms, rpn_rois)
