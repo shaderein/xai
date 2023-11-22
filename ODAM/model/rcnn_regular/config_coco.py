@@ -12,19 +12,20 @@ add_path(os.path.join(root_dir))
 add_path(os.path.join(root_dir, 'lib'))
 
 class COCO:
-    root_folder = '/opt/visal/home/chenyzhao9/data/coco'
-    train_folder = os.path.join(root_folder, 'train2017')
-    eval_folder = os.path.join(root_folder, 'val2017')
-    test_folder = os.path.join(root_folder, 'testdev2017')
+    root_folder = './data/coco'
+    train_folder = os.path.join(root_folder, 'images/train2017')
+    eval_folder = os.path.join(root_folder, 'images/val2017')
+    test_folder = os.path.join(root_folder, 'images/testdev2017')
     train_source = os.path.join(root_folder,'annotations/instances_train2017.json')
     eval_source = os.path.join(root_folder,'annotations/instances_val2017.json')
     test_source = os.path.join(root_folder,'annotations/instances_testdev2017.json')
 
 class Config:
     output_dir = 'coco_model'
-    model_dir = os.path.join(output_dir, 'model_dump')
+    model_dir = output_dir
+    # model_dir = os.path.join(output_dir, 'model_dump')
     eval_dir = os.path.join(output_dir, 'eval_dump')
-    init_weights = '/opt/visal/home/chenyzhao9/data/model/resnet50_fbaug.pth'
+    init_weights = '../data/model/resnet50_fbaug.pth'
 
     # ----------data config---------- #
     image_mean = np.array([103.530, 116.280, 123.675])

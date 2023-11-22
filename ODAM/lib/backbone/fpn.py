@@ -62,5 +62,5 @@ class FPN(nn.Module):
             results.insert(0, p6)
             p7 = self.p7(F.relu(results[0]))
             results.insert(0, p7)
-        return results, bottom_up_features[:3]
+        return results, bottom_up_features[:4]
 
