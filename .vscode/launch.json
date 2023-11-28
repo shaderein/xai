@@ -20,6 +20,27 @@
             "cwd": "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1"
         },
         {
+            "name": "main_wsl_odam_yolo_bdd",
+            "type": "python",
+            "request": "launch",
+            "python": "/home/jinhan/miniconda3/envs/xai-3.8/bin/python",
+            "program": "main_faithful_cal_adaptive_wsl.py",
+            "args": ["--object=vehicle",
+                        "--method=odam",
+                        "--prob=class",
+                        "--img-path=orib_veh_id_task0922",
+                        "--label-path=orib_veh_id_task0922_label"],
+                        // "--img-path=odam_test_image",
+                        // "--label-path=odam_test_label"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1",
+            "logging": {"moduleLoad": false},
+            "env": {
+                "DISPLAY": "localhost:11.0"
+            },
+        },
+        {
             "name": "main_wsl_coco",
             "type": "python",
             "request": "launch",
@@ -37,7 +58,7 @@
             "cwd": "/mnt/h/Projects/HKU_XAI_Project/Yolov5pretrained_GradCAM_Pytorch_2"
         },
         {
-            "name": "main_wsl_rcnn_bdd",
+            "name": "main_wsl_odam_rcnn_bdd",
             "type": "python",
             "request": "launch",
             "python": "/home/jinhan/miniconda3/envs/xai-3.8/bin/python",
@@ -87,6 +108,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            "python": "/home/jinhan/miniconda3/envs/xai-3.8/bin/python",
             "justMyCode": true
         }
     ]
