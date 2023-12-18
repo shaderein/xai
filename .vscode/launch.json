@@ -41,22 +41,44 @@
                 "DISPLAY": "localhost:11.0"
             },
         },
+        // {
+        //     "name": "main_wsl_coco",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "python": "/home/jinhan/miniconda3/envs/xai-rcnn/bin/python",
+        //     "program": "main_faithful_cal_adaptive_COCO.py",
+        //     "args": [
+        //                 "--method=gradcampp",
+                        
+        //                 "--img-path=orib_hum_id_task1009",
+        //                 "--label-path=orib_hum_id_task1009_label",
+        //                 "--model-path=/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth",
+        //                 "--output-dir=odam_nms_class_norm"],
+        //     "console": "integratedTerminal",
+        //     "justMyCode": true,
+        //     "cwd": "/mnt/h/Projects/HKU_XAI_Project/Yolov5pretrained_GradCAM_Pytorch_2"
+        // },
         {
             "name": "main_wsl_coco",
             "type": "python",
             "request": "launch",
-            "python": "/home/jinhan/miniconda3/envs/xai-rcnn/bin/python",
-            "program": "main_faithful_cal_adaptive_COCO.py",
-            "args": [
-                        "--method=gradcampp",
-                        
-                        "--img-path=orib_hum_id_task1009",
-                        "--label-path=orib_hum_id_task1009_label",
-                        "--model-path=/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth",
-                        "--output-dir=odam_nms_class_norm"],
+            "python": "/home/jinhan/miniconda3/envs/xai-coco/bin/python",
+            "program": "main_faithful_cal_adaptive_yolo_COCO.py",
+            "args": ["--object=COCO",
+                        "--model-path=/mnt/h/jinhan/xai/models/yolov5s_COCOPretrained.pt",
+                        "--method=odam",
+                        "--prob=class",
+                        "--img-path=/mnt/h/Projects/HKU_XAI_Project/Yolov5pretrained_GradCAM_Pytorch_1/COCO_YOLO_IMAGE",
+                        "--label-path=/mnt/h/Projects/HKU_XAI_Project/Yolov5pretrained_GradCAM_Pytorch_1/COCO_YOLO_LABEL"],
+                        // "--img-path=odam_test_image",
+                        // "--label-path=odam_test_label"],
             "console": "integratedTerminal",
-            "justMyCode": true,
-            "cwd": "/mnt/h/Projects/HKU_XAI_Project/Yolov5pretrained_GradCAM_Pytorch_2"
+            "justMyCode": false,
+            "cwd": "/mnt/h/jinhan/xai/MSCOCO",
+            "logging": {"moduleLoad": false},
+            "env": {
+                "DISPLAY": "localhost:11.0"
+            },
         },
         {
             "name": "main_wsl_odam_rcnn_bdd",

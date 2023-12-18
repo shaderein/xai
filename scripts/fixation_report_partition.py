@@ -1,7 +1,17 @@
 import pandas as pd
 import numpy as np
 
-data_path = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_vehicle_whole_screen_vb_fixed_pos/veh_exp_cleaned_outliers_11_23_2023_02_18_with_duration.xlsx"
+# EXP Veh
+# data_path = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_vehicle_whole_screen_vb_fixed_pos/veh_exp_cleaned_outliers_11_23_2023_02_18_with_duration.xlsx"
+
+# EXP Hum
+data_path = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_human_whole_screen_vb_fixed_pos/hum_exp_cleaned_outliers_11_30_2023_01_11_with_duration.xlsx"
+
+# DET Veh
+data_path = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_human_whole_screen_vb_fixed_pos/hum_exp_cleaned_outliers_11_30_2023_01_11_with_duration.xlsx"
+
+# DET Hum
+data_path = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_human_whole_screen_vb_fixed_pos/hum_exp_cleaned_outliers_11_30_2023_01_11_with_duration.xlsx"
 
 
 df = pd.read_excel(data_path)

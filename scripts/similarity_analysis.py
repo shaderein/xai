@@ -9,15 +9,37 @@ import pandas as pd
 def RMSE(predictions, targets):
     return np.sqrt(((predictions - targets) ** 2).mean())
 
+def nested_dict(n, type=object):
+    if n == 1:
+        return defaultdict(type)
+    else:
+        return defaultdict(lambda: nested_dict(n-1, type))
+
 #%%
-human_attention_path = '/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_vehicle_whole_screen_vb_fixed_pos/human_saliency_map'
+human_attention_path = {
+    "DET":{
+        'vehicle': '/mnt/h/OneDrive - The University Of Hong Kong/bdd/attention_maps/231206 Veh DET/whole_image',
+        'human':'/mnt/h/OneDrive - The University Of Hong Kong/bdd/attention_maps/231206 Hum DET/whole_image',
+    },
+    "DET-Cropped":{
+        'vehicle': '/mnt/h/OneDrive - The University Of Hong Kong/bdd/attention_maps/231206 Veh DET/cropped',
+        'human':'/mnt/h/OneDrive - The University Of Hong Kong/bdd/attention_maps/231206 Hum DET/cropped',
+    },
+    "EXP":{
+        'vehicle':'/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_vehicle_whole_screen_vb_fixed_pos/human_saliency_map',
+        'human':'/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231018_human_whole_screen_vb_fixed_pos/human_saliency_map',
+    }
+}
 
-human_attention = defaultdict()
+# Attention Type, Category, Image Idex
+human_attention = nested_dict(3)
 
-for file in os.listdir(human_attention_path):
-    img_idx = re.findall(r'\d+_',file)[-1].replace('_','')
-    mat = scipy.io.loadmat(os.path.join(human_attention_path,file))
-    human_attention[img_idx] = mat['output_map_norm']
+for type, path_by_type in human_attention_path.items():
+    for category, path in path_by_type.items():
+        for file in os.listdir(path):
+            img_idx = re.findall(r'\d+',file)[0]
+            mat = scipy.io.loadmat(os.path.join(path,file))
+            human_attention[type][category][img_idx] = mat['output_map_norm']
 
 #%%
 xai_saliency_path = '/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/multi_layer_analysis/odam_test_results'
