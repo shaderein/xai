@@ -96,7 +96,7 @@ def inference(config, network, model_file, dataset, start, end, figdir):
         levels = levels[keep]
 
         # prepare features and outputs
-        feats = features['fpn']
+        feats = features['fpn'] # TODO: use backbone feature maps?
         pred_scores = pred_boxes[:, 4]
         pred_regs = pred_boxes[:, 6:]
 
