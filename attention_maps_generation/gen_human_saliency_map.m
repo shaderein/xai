@@ -1,13 +1,21 @@
+% Generate human attention maps based for MSCOCO images, which have
+% inconsistent image size, whereas human fixations cover the whole screen
+%   - Jinhan Zhang 23-12-18
+
 clear;
-% Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\results\explanation\231018_human_whole_screen_vb_fixed_pos\exp_fixations_split_by_img';
-% Path.matSavePath = fullfile('H:\OneDrive - The University Of Hong Kong\bdd\results\explanation\231018_human_whole_screen_vb_fixed_pos\',['human_saliency_map']);
 
-% Path.RawDataPath = 'H:\Projects\HKU_XAI_Project\XAI_Similarity_1\Veh_IdTask_Split_Fixation'
+% DET Hum
+% Path.RawDataPath = 'H:\Projects\HKU_XAI_Project\XAI_Similarity_1\Hum_IdTask_Split_Fixation';
+% Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image';
+% Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image_visualize';
+% Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
 
-Path.RawDataPath = 'H:\Projects\HKU_XAI_Project\XAI_Similarity_1\Hum_IdTask_Split_Fixation';
-Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image';
-Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image_visualize';
-Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+% EXP Hum
+Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\results\explanation\231018_vehicle_whole_screen_vb_fixed_pos\exp_fixations_split_by_img';
+Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\attention_maps';
+Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\visualize';
+Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+
 
 Path.CodePath = pwd;
 addpath(genpath(Path.CodePath));
@@ -24,7 +32,7 @@ for i = 1:numel(fileDir)
 
     img_path = [Path.backgroundPath strrep(fileDir(i).name, 'xlsx', 'jpg')]
     
-    opt.gaussian_smooth_val = 30;   % 30 pixels, correspond to 1 degree (visual angle)
+    opt.gaussian_smooth_val = 30;   
     [output_map] = gen_heatmap_single(intA(:,1:3), img_path, opt);
     output_map_norm = (output_map-min(output_map,[],'all'))./(max(output_map,[],'all')-min(output_map,[],'all'));
     
