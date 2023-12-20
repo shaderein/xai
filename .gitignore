@@ -167,3 +167,8 @@ cython_debug/
 *.pyc
 *.weights
 *.pt
+
+*.asv
+
+attention_maps_generation/
+!attention_maps_generation/*.m
