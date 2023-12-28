@@ -38,23 +38,30 @@ import pandas as pd
 
 # Hyperparameter Settings
 target_layer_group_dict = {
-    "F1" : ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act'], #C3
-    "F2" : ['model_14_act', 'model_18_act', 'model_21_act'], #CONV
-    "F3" : ['model_13_cv3_act', 'model_17_cv3_act', 'model_20_cv3_act'], #C3
-    "F4" : ['model_10_act', 'model_14_act', 'model_18_act'], #CONV
-    "F5" : ['model_8_cv3_act', 'model_13_cv3_act', 'model_17_cv3_act'], #QS: C3 interplay with SPPF?
-    "F6" : ['model_8_cv3_act', 'model_10_act', 'model_14_act'], #C3
-    "F7" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_13_cv3_act'],
-    "F8" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_10_act'],
-    "F9" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
-    "F10" : ['model_8_cv2_act', 'model_8_cv2_act', 'model_8_cv2_act'], # QS boundary between neck and head
-    "F11" : ['model_7_act', 'model_7_act', 'model_7_act'], 
-    "F12" : ['model_6_cv3_act', 'model_6_cv3_act', 'model_6_cv3_act'], 
-    "F13" : ['model_5_act', 'model_5_act', 'model_5_act'], 
-    "F14" : ['model_4_cv3_act', 'model_4_cv3_act', 'model_4_cv3_act'], 
-    "F15" : ['model_3_act', 'model_3_act', 'model_3_act'], 
-    "F16" : ['model_2_cv3_act', 'model_2_cv3_act', 'model_2_cv3_act'], 
-    "F17" : ['model_1_act', 'model_1_act', 'model_1_act']
+"F1" : ['model_17_cv3_act', 'model_20_cv3_act', 'model_23_cv3_act'], #C3
+   "F2" : ['model_14_act', 'model_18_act', 'model_21_act'], #CONV
+   "F3" : ['model_13_cv3_act', 'model_17_cv3_act', 'model_20_cv3_act'],
+   "F4" : ['model_10_act', 'model_14_act', 'model_18_act'],
+
+	# SPPF in neck after C3
+   "F5" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_9_cv2_act'], 
+
+	# Neck
+   "F6" : ['model_8_cv3_act', 'model_13_cv3_act', 'model_17_cv3_act'],
+   "F7" : ['model_8_cv3_act', 'model_10_act', 'model_14_act'],
+   "F8" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_13_cv3_act'],
+   "F9" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_10_act'],
+   "F10" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
+
+# boundary between neck and backbone
+   "F11" : ['model_7_act', 'model_7_act', 'model_7_act'],
+   "F12" : ['model_6_cv3_act', 'model_6_cv3_act', 'model_6_cv3_act'],
+   "F13" : ['model_5_act', 'model_5_act', 'model_5_act'],
+   "F14" : ['model_4_cv3_act', 'model_4_cv3_act', 'model_4_cv3_act'],
+   "F15" : ['model_3_act', 'model_3_act', 'model_3_act'],
+   "F16" : ['model_2_cv3_act', 'model_2_cv3_act', 'model_2_cv3_act'],
+   "F17" : ['model_1_act', 'model_1_act', 'model_1_act']
+
 }
 
 # default class=vehicle
