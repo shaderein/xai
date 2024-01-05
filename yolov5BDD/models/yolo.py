@@ -4,6 +4,14 @@ from models.experimental import *
 
 
 class Detect(nn.Module):
+
+    # FIXME: Also present in 
+    # https://github.com/ultralytics/yolov5/blob/c8c5ef36c9a19c7843993ee8d51aebb685467eca/models/yolo.py
+    # Without these two lines, initializing yolov5s on pretrained model v3.1 on mscoco will give
+    # AttributeError: 'Detect' object has no attribute 'export' error
+    # stride = None  # strides computed during build
+    # export = False  # onnx export
+
     def __init__(self, nc=80, anchors=()):  # detection layer
         super(Detect, self).__init__()
         self.stride = None  # strides computed during build
