@@ -17,32 +17,61 @@ clear;
 % Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
 
 for c = 1:4
-    if c==1
-        % EXP Veh Grp1
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp1';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1_visualize';
+    % if c==1
+    %     % EXP Veh Grp1
+    %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp1';
+    %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1';
+    %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1_visualize';
+    %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    % end
+    % if c==2
+    %     % EXP Veh Grp2
+    %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp2';
+    %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2';
+    %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2_visualize';
+    %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    % end
+    % if c==3
+    %     % EXP Hum Grp1
+    %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp1';
+    %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1';
+    %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1_visualize';
+    %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+    % end
+    % if c==4
+    %     % EXP Hum Grp2
+    %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp2';
+    %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp2';
+    %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp2_visualize';
+    %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+    % end
+
+     if c==1
+        % DET Veh Grp1
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp1_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1_visualize';
         Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
     end
     if c==2
-        % EXP Veh Grp2
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp2';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2_visualize';
+        % DET Veh Grp2
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp2_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2_visualize';
         Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
     end
     if c==3
-        % EXP Hum Grp1
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp1';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1_visualize';
+        % DET Hum Grp1
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp1_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1_visualize';
         Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
     end
     if c==4
-        % EXP Hum Grp2
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp2';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp2';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp2_visualize';
+        % DET Hum Grp2
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp2_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2_visualize';
         Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
     end
 
@@ -57,6 +86,8 @@ for c = 1:4
 
         img_name = strrep(fileDir(i).name, '.xlsx', '');
         img_name = strrep(img_name, '.jpg', '');
+        img_name = strrep(img_name, 'grp1_expert', '');
+        img_name = strrep(img_name, 'grp2', '');
     
         curDir = fullfile(fileDir(i).folder, fileDir(i).name);
         
