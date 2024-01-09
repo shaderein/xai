@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import os, scipy
+import os, scipy, mat73
 
 data_path = {
     'bdd':{
@@ -20,9 +20,9 @@ emhmm_variables = {
         'EXP Hum': '/mnt/h/OneDrive - The University Of Hong Kong/bdd/results/explanation/231225_posneg_fixed_vbhem_alpha_hum/individual_hmms.mat',
     },
     'mscoco':{
-        'PV':'',
-        'DET':'',
-        'EXP':''
+        'PV':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/3_pv_SubjNames.mat',
+        'DET_excluded':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/1_it_SubjNames.mat',
+        'EXP_excluded_cleaned':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/2_exp_SubjNames.mat'
     }
 }
 
@@ -33,8 +33,8 @@ emhmm_cogrp_results = {
     },
     'mscoco':{
         'PV':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/3_pv_vbcogroup_hmms_1221.mat',
-        'DET':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/1_it_vbcogroup_hmms.mat',
-        'EXP':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/2_exp_vbcogroup_hmms_1220.mat'
+        'DET_excluded':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/1_it_vbcogroup_hmms.mat',
+        'EXP_excluded_cleaned':'/mnt/h/OneDrive - The University Of Hong Kong/mscoco/emhmm_results/2_exp_vbcogroup_hmms_1220.mat'
     }
 }
 
@@ -51,9 +51,9 @@ output_path = {
     }
 }
 
-for data in ['bdd']:
-    # for condition in data_path[data]:
-    for condition in ['EXP Veh','EXP Hum']:
+for data in ['mscoco']:
+    # for condition in ['EXP_excluded_cleaned']:
+    for condition in data_path[data]:
         if not os.path.exists(f"{output_path[data][condition]}_grp1"):
             os.makedirs(f"{output_path[data][condition]}_grp1")
         if not os.path.exists(f"{output_path[data][condition]}_grp2"):
@@ -61,10 +61,17 @@ for data in ['bdd']:
 
         df = pd.read_excel(data_path[data][condition])
 
-        emhmm_result = scipy.io.loadmat(emhmm_cogrp_results[data][condition])
-        emhmm_grps = emhmm_result['vbco']['groups'][0][0][0] # TODO: squeeze() doesn't work?
+        try:
+            emhmm_result = scipy.io.loadmat(emhmm_cogrp_results[data][condition])
+            emhmm_grps = emhmm_result['vbco']['groups'][0][0][0] # TODO: squeeze() doesn't work?
+        except: # old matlab edition used by Mary
+            emhmm_result = mat73.loadmat(emhmm_cogrp_results[data][condition])
+            emhmm_grps = emhmm_result['vbco']['groups'] # TODO: squeeze() doesn't work?
+
         emhmm_variable = scipy.io.loadmat(emhmm_variables[data][condition])
-        subject_names = [item[0][0] for item in emhmm_variable['SubjNames']]
+        subject_names = [emhmm_variable[k] for k in emhmm_variable.keys() if 'SubjNames' in k][0]
+        subject_names = [item[0][0] for item in subject_names]
+
         # Different label naming used by Mary and Jinhan
         if 'FixD' in df:
             df.rename(columns={'FixX': 'CURRENT_FIX_X', 'FixY': 'CURRENT_FIX_Y', 'FixD':'CURRENT_FIX_DURATION','StimuliID':'img','SubjectID':'sessionLabel'}, inplace=True)
@@ -72,8 +79,8 @@ for data in ['bdd']:
             df.rename(columns={'FixX': 'CURRENT_FIX_X', 'FixY': 'CURRENT_FIX_Y', 'FixDuration':'CURRENT_FIX_DURATION','StimuliID':'img','SubjectID':'sessionLabel'}, inplace=True)
         df = df[['CURRENT_FIX_X','CURRENT_FIX_Y','CURRENT_FIX_DURATION','img','sessionLabel']]
 
-        grp1_subjs = [subject_names[i-1] for i in emhmm_grps[0].squeeze()]
-        grp2_subjs = [subject_names[i-1] for i in emhmm_grps[1].squeeze()]
+        grp1_subjs = [subject_names[int(i)-1] for i in emhmm_grps[0].squeeze()]
+        grp2_subjs = [subject_names[int(i)-1] for i in emhmm_grps[1].squeeze()]
 
         df_grp1 = df[df['sessionLabel'].isin(grp1_subjs)]
         df_grp2 = df[df['sessionLabel'].isin(grp2_subjs)]
