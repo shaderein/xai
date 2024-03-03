@@ -43,17 +43,17 @@ target_layer_group_dict = {
     "F3" : ['model_13_cv3_act', 'model_17_cv3_act', 'model_20_cv3_act'],
     "F4" : ['model_10_act', 'model_14_act', 'model_18_act'],   
 
-	# SPPF in neck after C3
-    "F5" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_9_cv2_act'], 
-
 	# Neck
-    "F6" : ['model_8_cv3_act', 'model_13_cv3_act', 'model_17_cv3_act'],
-    "F7" : ['model_8_cv3_act', 'model_10_act', 'model_14_act'],
-    "F8" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_13_cv3_act'],
-    "F9" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_10_act'],
-    "F10" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
+    "F5" : ['model_9_cv2_act', 'model_13_cv3_act', 'model_17_cv3_act'],
+    "F6" : ['model_9_cv2_act', 'model_10_act', 'model_14_act'],
+    "F7" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_13_cv3_act'],
+    "F8" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_10_act'],
+
+    # SPPF
+    "F9" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_9_cv2_act'], 
 
     # boundary between neck and backbone
+    "F10" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
     "F11" : ['model_7_act', 'model_7_act', 'model_7_act'],
     "F12" : ['model_6_cv3_act', 'model_6_cv3_act', 'model_6_cv3_act'],
     "F13" : ['model_5_act', 'model_5_act', 'model_5_act'],
@@ -132,7 +132,7 @@ elif args.object=='vehicle':
     bb_selections = bb_selections[['image','vehicle_count_gt','ExpTargetIndex']]
 # NOTE: From Chenyang. Check his data format.
 elif args.object=='COCO':
-    bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
+    bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
 
 
 def area(a, b, threshold=0.5): 
@@ -175,7 +175,7 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel)
         bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
     tic = time.time()
-    _, masks_sum, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img)
+    masks, masks_sum, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img)
     print("total time:", round(time.time() - tic, 4))
     result = torch_img.squeeze(0).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).detach().cpu().numpy()
     result = result[..., ::-1]  # convert to bgr
@@ -185,9 +185,13 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel)
     result_raw = result
     images = [img]
     result = img
-    masks = [masks_sum]
-    masks[0] = F.upsample(masks[0], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-    masks[0] = masks[0]
+
+    for i in range(len(masks)):
+        masks[i] = F.upsample(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+    masks_sum = F.upsample(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+
+    if saliency_method.sel_XAImethod != 'odam':    
+        masks = [masks_sum]
 
     ### Rescale Boxes
     shape_raw = [np.size(result_raw, 1), np.size(result_raw, 0)]  # w, h
@@ -204,15 +208,56 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel)
     else:
         Vacc = 0
 
+    # Generalize to both whole-image and instance-based saliency maps
+    if args.method == 'odam':
+        # Find best matching target BB's index from pred (y1,x1,y2,x2)
+        # For MSCOCO: Chenyang provided both GT target index and coordinates x1,y1,x2,y2
+        if args.object == 'COCO':
+            target_bbox_GT = [bb_selection[['y1']].y1.item()*img.shape[0],
+                              bb_selection[['x1']].x1.item()*img.shape[1],
+                              bb_selection[['y2']].y2.item()*img.shape[0],
+                              bb_selection[['x2']].x2.item()*img.shape[1]]
+            boxes_GT_overlaps = [area(box_GT[0],target_bbox_GT,threshold=0.1) for box_GT in boxes_GT]
+            target_idx_GT = np.argmax(boxes_GT_overlaps)
+        # For BDD: we only know the target index. Get GT target BB coordiates from input annotations
+        else:
+            indices_GT_sorted = np.concatenate(boxes_GT,axis=0)[:, 1].argsort() # use x1 (top-left) to determine order of target (left to right)
+            target_idx_GT = indices_GT_sorted[bb_selection['ExpTargetIndex'].values[0]-1]
+            target_bbox_GT = boxes_GT[target_idx_GT][0]
+
+        overlaps = np.zeros(len(boxes))
+        target_indices_pred = [] # May miss the target
+        for i in range(len(boxes)):
+            overlaps[i] = area(boxes[i][0],target_bbox_GT,threshold=0.1)
+        if len(overlaps) > 0 and overlaps.max() > 0:
+            target_indices_pred.append(np.argmax(overlaps))
+    else:
+        # preserve all prediction boxes
+        target_indices_pred = range(len(boxes)) #FIXME
+
     ### Display
+
+    # Generate whole-image saliency maps as reference        
+    all_mask_img = result.copy()
+    all_mask_img, heat_map = ut.get_res_img(masks_sum, all_mask_img)
+
+    res_img = result.copy()
     for i, mask in enumerate(masks):
-        res_img = result.copy()
-        res_img, heat_map = ut.get_res_img(mask, res_img)
+        if i in target_indices_pred:
+            res_img, heat_map = ut.get_res_img(mask, res_img)
+        # else:
+        #     res_img, heat_map = ut.get_res_img(torch.empty_like(mask), res_img)
+        # FIXME: color scale when visualizing empty / zeros heatmaps where no maps found at target BB
     for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
         if cls_name[0] in class_names_sel:
-            #bbox, cls_name = boxes[0][i], class_names[0][i]
-            # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-            res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], res_img) / 255
+            if i in target_indices_pred:
+                res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], res_img) / 255
+                all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], all_mask_img) / 255
+                
+                # FIXME: check EXP BB selection
+                res_img = ut.put_text_box(target_bbox_GT, "GT BB for EXP", res_img, color=(255,0,0)) / 255
+            else:
+                all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], all_mask_img, color=(0,0,255)) / 255
 
     ## Display Ground Truth
     gt_img = result.copy()
@@ -220,13 +265,21 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel)
     for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
         cls_idx = np.int8(cls_idx)
         if class_names_gt[cls_idx] in class_names_sel:
-            #bbox, cls_name = boxes[0][i], class_names[0][i]
-            # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-            gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
+            if i==target_idx_GT:
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img,color=(0,255,0)) / 255
+            else:
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img,color=(0,0,255)) / 255
 
     # images.append(gt_img * 255)
-    images = [gt_img * 255]
-    images.append(res_img * 255)
+    images = [cv2.imread(f"/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+    images.append(gt_img * 255)
+
+    # no matching prediction and therefore empty saliency maps
+    if len(target_indices_pred) == 0:
+        images.append(res_img) # original image
+    else:
+        images.append(res_img * 255)
+    images.append(all_mask_img * 255)
     final_image = ut.concat_images(images)
     img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
     output_path = f'{args.output_dir}/{img_name}'
@@ -237,7 +290,10 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel)
     gc.collect()
     torch.cuda.empty_cache()
 
-    masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
+    if len(target_indices_pred) == 0:
+        masks_ndarray = np.zeros(masks[0].squeeze().detach().cpu().numpy().shape)
+    else: 
+        masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
 
     # nofaith, aifaith, humanfaith, aihumanfaith
     if sel_faith == 'nofaith':
@@ -356,7 +412,7 @@ if __name__ == '__main__':
                                       names=None if args.names is None else args.names.strip().split(","))
 
     for i, (target_layer_group_name, target_layer_group) in enumerate(target_layer_group_dict.items()):
-        if target_layer_group_name != 'F5': continue
+        if target_layer_group_name not in ['F5']: continue
         sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + sel_norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
         args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
         args.target_layer = target_layer_group
@@ -373,7 +429,7 @@ if __name__ == '__main__':
 
                 class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
                 if class_name not in class_names_gt:
-                    print(f'[WARNING] {item_img} category parsed as {class_name}')
+                    print(f'[ERROR] {item_img} category not found (parsed as {class_name})')
                     continue
 
                 saliency_method.sel_classes = [class_name] # generate saliency maps for specific category

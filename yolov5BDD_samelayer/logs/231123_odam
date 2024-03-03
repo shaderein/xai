@@ -1,0 +1,1453 @@
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.031 seconds
+[INFO] car, model-backward took:  0.2623 seconds
+total time: 0.4427
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.022 seconds
+[INFO] car, model-backward took:  0.0654 seconds
+[INFO] car, model-backward took:  0.0559 seconds
+total time: 0.287
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0185 seconds
+[INFO] car, model-backward took:  0.0561 seconds
+total time: 0.216
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0199 seconds
+[INFO] car, model-backward took:  0.0528 seconds
+[INFO] car, model-backward took:  0.0586 seconds
+total time: 0.2873
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] car, model-backward took:  0.0573 seconds
+[INFO] car, model-backward took:  0.0488 seconds
+total time: 0.2773
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0523 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+[INFO] car, model-backward took:  0.0576 seconds
+[INFO] car, model-backward took:  0.0485 seconds
+total time: 0.4153
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0163 seconds
+[INFO] car, model-backward took:  0.0597 seconds
+[INFO] car, model-backward took:  0.0568 seconds
+[INFO] bus, model-backward took:  0.0537 seconds
+total time: 0.3769
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0171 seconds
+[INFO] car, model-backward took:  0.0523 seconds
+[INFO] car, model-backward took:  0.0489 seconds
+[INFO] car, model-backward took:  0.0525 seconds
+[INFO] car, model-backward took:  0.0472 seconds
+total time: 0.4417
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0584 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0477 seconds
+total time: 0.3764
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.017 seconds
+[INFO] car, model-backward took:  0.0596 seconds
+[INFO] car, model-backward took:  0.0562 seconds
+[INFO] car, model-backward took:  0.0521 seconds
+total time: 0.3743
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0181 seconds
+[INFO] car, model-backward took:  0.0566 seconds
+[INFO] car, model-backward took:  0.0521 seconds
+[INFO] car, model-backward took:  0.0531 seconds
+[INFO] car, model-backward took:  0.0479 seconds
+total time: 0.4419
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0213 seconds
+[INFO] car, model-backward took:  0.0497 seconds
+[INFO] car, model-backward took:  0.0498 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+total time: 0.3658
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0166 seconds
+[INFO] car, model-backward took:  0.0562 seconds
+[INFO] car, model-backward took:  0.0551 seconds
+[INFO] car, model-backward took:  0.0592 seconds
+total time: 0.3772
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0194 seconds
+[INFO] truck, model-backward took:  0.0578 seconds
+[INFO] car, model-backward took:  0.0513 seconds
+[INFO] car, model-backward took:  0.0584 seconds
+total time: 0.3936
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0221 seconds
+[INFO] car, model-backward took:  0.0484 seconds
+[INFO] car, model-backward took:  0.0509 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+total time: 0.3403
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0525 seconds
+[INFO] car, model-backward took:  0.0481 seconds
+total time: 0.2772
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0205 seconds
+[INFO] car, model-backward took:  0.0563 seconds
+[INFO] truck, model-backward took:  0.051 seconds
+[INFO] car, model-backward took:  0.0558 seconds
+total time: 0.3765
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.052 seconds
+[INFO] car, model-backward took:  0.0492 seconds
+[INFO] car, model-backward took:  0.0484 seconds
+[INFO] car, model-backward took:  0.0461 seconds
+total time: 0.4305
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.029 seconds
+[INFO] car, model-backward took:  0.2157 seconds
+total time: 0.379
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0201 seconds
+[INFO] car, model-backward took:  0.0587 seconds
+[INFO] car, model-backward took:  0.0562 seconds
+total time: 0.2955
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0205 seconds
+[INFO] car, model-backward took:  0.0502 seconds
+total time: 0.2167
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0172 seconds
+[INFO] car, model-backward took:  0.0669 seconds
+[INFO] car, model-backward took:  0.0624 seconds
+total time: 0.3092
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0594 seconds
+[INFO] car, model-backward took:  0.0543 seconds
+total time: 0.2914
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0179 seconds
+[INFO] car, model-backward took:  0.0554 seconds
+[INFO] car, model-backward took:  0.049 seconds
+[INFO] car, model-backward took:  0.0529 seconds
+[INFO] car, model-backward took:  0.0497 seconds
+total time: 0.4577
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.017 seconds
+[INFO] car, model-backward took:  0.048 seconds
+[INFO] car, model-backward took:  0.0487 seconds
+[INFO] bus, model-backward took:  0.0486 seconds
+total time: 0.3643
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0542 seconds
+[INFO] car, model-backward took:  0.0531 seconds
+[INFO] car, model-backward took:  0.0528 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+total time: 0.4324
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0162 seconds
+[INFO] car, model-backward took:  0.056 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+total time: 0.3543
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0173 seconds
+[INFO] car, model-backward took:  0.0541 seconds
+[INFO] car, model-backward took:  0.052 seconds
+[INFO] car, model-backward took:  0.0473 seconds
+total time: 0.3763
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0171 seconds
+[INFO] car, model-backward took:  0.0532 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+[INFO] car, model-backward took:  0.0525 seconds
+total time: 0.4175
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] car, model-backward took:  0.06 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+[INFO] car, model-backward took:  0.0483 seconds
+total time: 0.3491
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0523 seconds
+[INFO] car, model-backward took:  0.0521 seconds
+[INFO] car, model-backward took:  0.0535 seconds
+total time: 0.3813
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] truck, model-backward took:  0.0545 seconds
+[INFO] car, model-backward took:  0.0513 seconds
+[INFO] car, model-backward took:  0.0513 seconds
+total time: 0.3765
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0173 seconds
+[INFO] car, model-backward took:  0.0488 seconds
+[INFO] car, model-backward took:  0.0526 seconds
+[INFO] car, model-backward took:  0.0468 seconds
+total time: 0.3567
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0173 seconds
+[INFO] car, model-backward took:  0.058 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+total time: 0.2854
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0212 seconds
+[INFO] car, model-backward took:  0.0504 seconds
+[INFO] truck, model-backward took:  0.0515 seconds
+[INFO] car, model-backward took:  0.0524 seconds
+total time: 0.3872
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0193 seconds
+[INFO] car, model-backward took:  0.0513 seconds
+[INFO] car, model-backward took:  0.0525 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+total time: 0.4628
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0168 seconds
+total time: 0.0899
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0277 seconds
+[INFO] car, model-backward took:  0.2196 seconds
+total time: 0.3658
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0214 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+[INFO] car, model-backward took:  0.049 seconds
+total time: 0.2715
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0222 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+total time: 0.2048
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0205 seconds
+[INFO] car, model-backward took:  0.0595 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+total time: 0.2864
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0185 seconds
+[INFO] car, model-backward took:  0.0539 seconds
+[INFO] car, model-backward took:  0.0564 seconds
+total time: 0.3181
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0171 seconds
+[INFO] car, model-backward took:  0.0536 seconds
+[INFO] car, model-backward took:  0.0506 seconds
+[INFO] car, model-backward took:  0.0511 seconds
+[INFO] car, model-backward took:  0.0513 seconds
+total time: 0.4596
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0167 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0504 seconds
+[INFO] bus, model-backward took:  0.0492 seconds
+total time: 0.3436
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0164 seconds
+[INFO] car, model-backward took:  0.0483 seconds
+[INFO] car, model-backward took:  0.0498 seconds
+[INFO] car, model-backward took:  0.0534 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.4361
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0172 seconds
+[INFO] car, model-backward took:  0.0599 seconds
+[INFO] car, model-backward took:  0.0529 seconds
+[INFO] car, model-backward took:  0.0537 seconds
+total time: 0.384
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0166 seconds
+[INFO] car, model-backward took:  0.0562 seconds
+[INFO] car, model-backward took:  0.0522 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+total time: 0.3806
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0521 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.048 seconds
+[INFO] car, model-backward took:  0.0484 seconds
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0257 seconds
+[INFO] car, model-backward took:  0.2147 seconds
+total time: 0.3599
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0192 seconds
+[INFO] car, model-backward took:  0.0527 seconds
+[INFO] car, model-backward took:  0.0483 seconds
+total time: 0.2741
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0184 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+total time: 0.1947
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.02 seconds
+[INFO] car, model-backward took:  0.0481 seconds
+[INFO] car, model-backward took:  0.0559 seconds
+total time: 0.2954
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0209 seconds
+[INFO] car, model-backward took:  0.0477 seconds
+[INFO] car, model-backward took:  0.0457 seconds
+total time: 0.2704
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0222 seconds
+[INFO] car, model-backward took:  0.0462 seconds
+[INFO] car, model-backward took:  0.0458 seconds
+[INFO] car, model-backward took:  0.0475 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+total time: 0.4177
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.017 seconds
+[INFO] car, model-backward took:  0.0503 seconds
+[INFO] car, model-backward took:  0.0564 seconds
+[INFO] bus, model-backward took:  0.059 seconds
+total time: 0.3822
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+[INFO] car, model-backward took:  0.0466 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+[INFO] car, model-backward took:  0.0458 seconds
+total time: 0.4094
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+total time: 0.3501
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.018 seconds
+[INFO] car, model-backward took:  0.0533 seconds
+[INFO] car, model-backward took:  0.0645 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+total time: 0.3827
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0163 seconds
+[INFO] car, model-backward took:  0.0468 seconds
+[INFO] car, model-backward took:  0.0462 seconds
+[INFO] car, model-backward took:  0.0457 seconds
+[INFO] car, model-backward took:  0.0459 seconds
+total time: 0.414
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0479 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.3257
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0204 seconds
+[INFO] car, model-backward took:  0.0519 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+[INFO] car, model-backward took:  0.049 seconds
+total time: 0.3779
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0188 seconds
+[INFO] truck, model-backward took:  0.0688 seconds
+[INFO] car, model-backward took:  0.0652 seconds
+[INFO] car, model-backward took:  0.0706 seconds
+total time: 0.4682
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0171 seconds
+[INFO] car, model-backward took:  0.0549 seconds
+[INFO] car, model-backward took:  0.0584 seconds
+[INFO] car, model-backward took:  0.0509 seconds
+total time: 0.3757
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.053 seconds
+[INFO] car, model-backward took:  0.0473 seconds
+total time: 0.2773
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_test_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.1223 seconds
+[INFO] car, model-backward took:  0.405 seconds
+total time: 1.0692
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0255 seconds
+[INFO] car, model-backward took:  0.0472 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+total time: 0.2681
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0177 seconds
+[INFO] car, model-backward took:  0.0515 seconds
+total time: 0.1923
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0172 seconds
+[INFO] car, model-backward took:  0.0477 seconds
+[INFO] car, model-backward took:  0.0537 seconds
+total time: 0.2758
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0178 seconds
+[INFO] car, model-backward took:  0.0491 seconds
+[INFO] car, model-backward took:  0.0544 seconds
+total time: 0.3055
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0167 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0473 seconds
+[INFO] car, model-backward took:  0.0472 seconds
+[INFO] car, model-backward took:  0.0457 seconds
+total time: 0.399
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0177 seconds
+[INFO] car, model-backward took:  0.0547 seconds
+[INFO] car, model-backward took:  0.05 seconds
+[INFO] bus, model-backward took:  0.0489 seconds
+total time: 0.3831
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0167 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+[INFO] car, model-backward took:  0.0556 seconds
+[INFO] car, model-backward took:  0.0466 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+total time: 0.4314
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0167 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+total time: 0.3261
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0166 seconds
+[INFO] car, model-backward took:  0.0488 seconds
+[INFO] car, model-backward took:  0.0477 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.3473
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0166 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0475 seconds
+[INFO] car, model-backward took:  0.046 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+total time: 0.4149
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.018 seconds
+[INFO] car, model-backward took:  0.0475 seconds
+[INFO] car, model-backward took:  0.0466 seconds
+[INFO] car, model-backward took:  0.0466 seconds
+total time: 0.3364
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0182 seconds
+[INFO] car, model-backward took:  0.0497 seconds
+[INFO] car, model-backward took:  0.0515 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+total time: 0.3531
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0181 seconds
+[INFO] truck, model-backward took:  0.0567 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+[INFO] car, model-backward took:  0.0538 seconds
+total time: 0.3475
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0512 seconds
+[INFO] car, model-backward took:  0.0507 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+total time: 0.3487
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0174 seconds
+[INFO] car, model-backward took:  0.0556 seconds
+[INFO] car, model-backward took:  0.0577 seconds
+total time: 0.2905
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.051 seconds
+[INFO] truck, model-backward took:  0.0479 seconds
+[INFO] car, model-backward took:  0.0491 seconds
+total time: 0.3466
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] car, model-backward took:  0.0463 seconds
+[INFO] car, model-backward took:  0.0488 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.3953
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0163 seconds
+total time: 0.0962
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0257 seconds
+[INFO] car, model-backward took:  0.216 seconds
+total time: 0.3548
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0458 seconds
+total time: 0.2664
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.017 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+total time: 0.1891
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0174 seconds
+[INFO] car, model-backward took:  0.0461 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+total time: 0.2564
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0176 seconds
+[INFO] car, model-backward took:  0.0468 seconds
+[INFO] car, model-backward took:  0.0463 seconds
+total time: 0.2738
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0194 seconds
+[INFO] car, model-backward took:  0.0487 seconds
+[INFO] car, model-backward took:  0.0484 seconds
+[INFO] car, model-backward took:  0.0489 seconds
+[INFO] car, model-backward took:  0.0486 seconds
+total time: 0.4247
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0163 seconds
+[INFO] car, model-backward took:  0.0453 seconds
+[INFO] car, model-backward took:  0.0455 seconds
+[INFO] bus, model-backward took:  0.0461 seconds
+total time: 0.3198
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0161 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+[INFO] car, model-backward took:  0.0494 seconds
+[INFO] car, model-backward took:  0.0461 seconds
+[INFO] car, model-backward took:  0.048 seconds
+total time: 0.4354
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0169 seconds
+[INFO] car, model-backward took:  0.0479 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0499 seconds
+total time: 0.37
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0477 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.3469
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0178 seconds
+[INFO] car, model-backward took:  0.05 seconds
+[INFO] car, model-backward took:  0.0507 seconds
+[INFO] car, model-backward took:  0.0505 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+total time: 0.4943
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0175 seconds
+[INFO] car, model-backward took:  0.0523 seconds
+[INFO] car, model-backward took:  0.051 seconds
+[INFO] car, model-backward took:  0.0527 seconds
+total time: 0.3737
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0194 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+[INFO] car, model-backward took:  0.0481 seconds
+total time: 0.3596
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0189 seconds
+[INFO] truck, model-backward took:  0.0484 seconds
+[INFO] car, model-backward took:  0.0484 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+total time: 0.3722
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0191 seconds
+[INFO] car, model-backward took:  0.053 seconds
+[INFO] car, model-backward took:  0.0552 seconds
+[INFO] car, model-backward took:  0.0512 seconds
+total time: 0.3738
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0185 seconds
+[INFO] car, model-backward took:  0.0498 seconds
+[INFO] car, model-backward took:  0.0452 seconds
+total time: 0.2703
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.018 seconds
+[INFO] car, model-backward took:  0.0493 seconds
+[INFO] truck, model-backward took:  0.0467 seconds
+[INFO] car, model-backward took:  0.0473 seconds
+total time: 0.3477
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.029 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+[INFO] car, model-backward took:  0.0517 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+[INFO] car, model-backward took:  0.0481 seconds
+total time: 0.4885
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0153 seconds
+total time: 0.0904
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='orib_veh_id_task0922', img_size=608, label_path='orib_veh_id_task0922_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0265 seconds
+[INFO] car, model-backward took:  0.2177 seconds
+total time: 0.3697
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0227 seconds
+[INFO] car, model-backward took:  0.054 seconds
+[INFO] car, model-backward took:  0.0519 seconds
+total time: 0.2934
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1007-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0177 seconds
+[INFO] car, model-backward took:  0.05 seconds
+total time: 0.1939
+1
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1023-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0193 seconds
+[INFO] car, model-backward took:  0.0511 seconds
+[INFO] car, model-backward took:  0.0516 seconds
+total time: 0.2762
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1026-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0222 seconds
+[INFO] car, model-backward took:  0.0547 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+total time: 0.29
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1028-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0161 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0521 seconds
+[INFO] car, model-backward took:  0.0462 seconds
+total time: 0.4184
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1031-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.017 seconds
+[INFO] car, model-backward took:  0.0497 seconds
+[INFO] car, model-backward took:  0.0524 seconds
+[INFO] bus, model-backward took:  0.0525 seconds
+total time: 0.3507
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1041-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.016 seconds
+[INFO] car, model-backward took:  0.0459 seconds
+[INFO] car, model-backward took:  0.052 seconds
+[INFO] car, model-backward took:  0.047 seconds
+[INFO] car, model-backward took:  0.0454 seconds
+total time: 0.4104
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1043-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0165 seconds
+[INFO] car, model-backward took:  0.0599 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+[INFO] car, model-backward took:  0.0493 seconds
+total time: 0.3727
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1047-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0164 seconds
+[INFO] car, model-backward took:  0.0488 seconds
+[INFO] car, model-backward took:  0.053 seconds
+[INFO] car, model-backward took:  0.047 seconds
+total time: 0.3556
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1065-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0178 seconds
+[INFO] car, model-backward took:  0.058 seconds
+[INFO] car, model-backward took:  0.0575 seconds
+[INFO] car, model-backward took:  0.0536 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+total time: 0.4664
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0186 seconds
+[INFO] car, model-backward took:  0.0498 seconds
+[INFO] car, model-backward took:  0.0514 seconds
+[INFO] car, model-backward took:  0.0485 seconds
+total time: 0.368
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1090-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0173 seconds
+[INFO] car, model-backward took:  0.0489 seconds
+[INFO] car, model-backward took:  0.0468 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.3354
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1099-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0167 seconds
+[INFO] truck, model-backward took:  0.0508 seconds
+[INFO] car, model-backward took:  0.0529 seconds
+[INFO] car, model-backward took:  0.0481 seconds
+total time: 0.3769
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1100-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0172 seconds
+[INFO] car, model-backward took:  0.0485 seconds
+[INFO] car, model-backward took:  0.0578 seconds
+[INFO] car, model-backward took:  0.048 seconds
+total time: 0.3682
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1108-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0169 seconds
+[INFO] car, model-backward took:  0.0532 seconds
+[INFO] car, model-backward took:  0.0503 seconds
+total time: 0.2792
+2
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1109-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0199 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+[INFO] truck, model-backward took:  0.0465 seconds
+[INFO] car, model-backward took:  0.0509 seconds
+total time: 0.3547
+3
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1112-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.0192 seconds
+[INFO] car, model-backward took:  0.054 seconds
+[INFO] car, model-backward took:  0.0482 seconds
+[INFO] car, model-backward took:  0.0462 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+total time: 0.4522
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1114-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] model-forward took:  0.015 seconds
+total time: 0.0876
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1121-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] Namespace(device='cuda', img_path='odam_test_image', img_size=608, label_path='odam_test_label', method='odam', model_path='yolov5sbdd100k300epoch.pt', names=None, object='vehicle', output_dir='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', prob='class')
+[INFO] Loading the model
+Fusing layers... Model Summary: 140 layers, 7.25731e+06 parameters, 6.61683e+06 gradients
+[INFO] Model is loaded
+[INFO] fetching names from bdd100k-self file
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0301 seconds
+[INFO] car, model-backward took:  0.2229 seconds
+[INFO] car, model-backward took:  0.0498 seconds
+[INFO] car, model-backward took:  0.0508 seconds
+[INFO] car, model-backward took:  0.0503 seconds
+total time: 0.6502
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F1_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0246 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+[INFO] car, model-backward took:  0.0461 seconds
+[INFO] car, model-backward took:  0.0456 seconds
+[INFO] car, model-backward took:  0.0452 seconds
+total time: 0.4222
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F2_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F2_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0234 seconds
+[INFO] car, model-backward took:  0.0466 seconds
+[INFO] car, model-backward took:  0.0451 seconds
+[INFO] car, model-backward took:  0.045 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.4256
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F3_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F3_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0255 seconds
+[INFO] car, model-backward took:  0.0511 seconds
+[INFO] car, model-backward took:  0.049 seconds
+[INFO] car, model-backward took:  0.0509 seconds
+[INFO] car, model-backward took:  0.0492 seconds
+total time: 0.4673
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F4_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F4_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] model-forward took:  0.0267 seconds
+[INFO] car, model-backward took:  0.056 seconds
+[INFO] car, model-backward took:  0.058 seconds
+[INFO] car, model-backward took:  0.056 seconds
+[INFO] car, model-backward took:  0.0567 seconds
+total time: 0.5172
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F5_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F5_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0269 seconds
+[INFO] car, model-backward took:  0.0518 seconds
+[INFO] car, model-backward took:  0.0471 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+[INFO] car, model-backward took:  0.0479 seconds
+total time: 0.4596
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F6_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F6_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0237 seconds
+[INFO] car, model-backward took:  0.0486 seconds
+[INFO] car, model-backward took:  0.051 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.4375
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F7_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F7_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0263 seconds
+[INFO] car, model-backward took:  0.0548 seconds
+[INFO] car, model-backward took:  0.0504 seconds
+[INFO] car, model-backward took:  0.0479 seconds
+[INFO] car, model-backward took:  0.0492 seconds
+total time: 0.4644
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F8_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F8_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0287 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0474 seconds
+[INFO] car, model-backward took:  0.0461 seconds
+[INFO] car, model-backward took:  0.0487 seconds
+total time: 0.4447
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F9_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F9_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0246 seconds
+[INFO] car, model-backward took:  0.0564 seconds
+[INFO] car, model-backward took:  0.0487 seconds
+[INFO] car, model-backward took:  0.0472 seconds
+[INFO] car, model-backward took:  0.048 seconds
+total time: 0.4424
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F10_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F10_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] saliency_map size : torch.Size([19, 19])
+[INFO] model-forward took:  0.0245 seconds
+[INFO] car, model-backward took:  0.0531 seconds
+[INFO] car, model-backward took:  0.0528 seconds
+[INFO] car, model-backward took:  0.0532 seconds
+[INFO] car, model-backward took:  0.0546 seconds
+total time: 0.4735
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F11_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F11_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0257 seconds
+[INFO] car, model-backward took:  0.0467 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0462 seconds
+[INFO] car, model-backward took:  0.046 seconds
+total time: 0.4366
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F12_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F12_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] saliency_map size : torch.Size([38, 38])
+[INFO] model-forward took:  0.0304 seconds
+[INFO] car, model-backward took:  0.0527 seconds
+[INFO] car, model-backward took:  0.0516 seconds
+[INFO] car, model-backward took:  0.0501 seconds
+[INFO] car, model-backward took:  0.0507 seconds
+total time: 0.4593
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F13_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F13_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] model-forward took:  0.0259 seconds
+[INFO] car, model-backward took:  0.047 seconds
+[INFO] car, model-backward took:  0.0468 seconds
+[INFO] car, model-backward took:  0.0463 seconds
+[INFO] car, model-backward took:  0.0465 seconds
+total time: 0.4175
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F14_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F14_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] saliency_map size : torch.Size([76, 76])
+[INFO] model-forward took:  0.0253 seconds
+[INFO] car, model-backward took:  0.0536 seconds
+[INFO] car, model-backward took:  0.0531 seconds
+[INFO] car, model-backward took:  0.0529 seconds
+[INFO] car, model-backward took:  0.053 seconds
+total time: 0.4515
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F15_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F15_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] model-forward took:  0.0234 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+[INFO] car, model-backward took:  0.0469 seconds
+[INFO] car, model-backward took:  0.0464 seconds
+[INFO] car, model-backward took:  0.049 seconds
+total time: 0.4337
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F16_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F16_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] saliency_map size : torch.Size([152, 152])
+[INFO] model-forward took:  0.0247 seconds
+[INFO] car, model-backward took:  0.0496 seconds
+[INFO] car, model-backward took:  0.0478 seconds
+[INFO] car, model-backward took:  0.0476 seconds
+[INFO] car, model-backward took:  0.0492 seconds
+total time: 0.4385
+4
+[INFO] Saving the final image at multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F17_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+[INFO] save mat to: multi_layer_analysis/odam_results/odam_vehicle_NMS_class_F17_aifaith_norm_yolov5sbdd100k300epoch_1/1079-res.jpg
+| ID | GPU | MEM |
+------------------
