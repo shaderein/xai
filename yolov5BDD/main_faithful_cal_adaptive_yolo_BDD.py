@@ -24,7 +24,7 @@ import gc
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
-import math
+import math, logging
 import utils.util_my_yolov5 as ut
 
 import torch.utils.data
@@ -76,6 +76,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', type=str, default='yolov5sbdd100k300epoch.pt', help='Path to the model')
 parser.add_argument('--img-path', type=str, default=input_main_dir, help='input image path')
 parser.add_argument('--output-dir', type=str, default='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', help='output dir')
+parser.add_argument('--output-main-dir', type=str, default=output_main_dir, help='output root dir')
 parser.add_argument('--img-size', type=int, default=608, help="input image size")
 # parser.add_argument('--target-layer', type=list, default=list(target_layer_group_list[0]),
 #                     help='The layer hierarchical address to which gradcam will applied,'
@@ -89,6 +90,7 @@ parser.add_argument('--label-path', type=str, default=input_main_dir_label, help
 
 parser.add_argument('--object', type=str, default="vehicle", help='human or vehicle')
 parser.add_argument('--prob', type=str, default="class", help='obj, class, objclass')
+parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help='path to coco classes list')
 
 args = parser.parse_args()
 
@@ -100,7 +102,7 @@ if args.object=='human':
     input_main_dir = 'orib_hum_id_task1009'
     input_main_dir_label = 'orib_hum_id_task1009_label'
 elif args.object=='COCO':
-    class_names_sel = [line.strip() for line in open('COCO_classes.txt')]
+    class_names_sel = [line.strip() for line in open(args.coco_labels)]
     # args.model_path = 'yolov5s_COCOPretrained.pt'
     input_main_dir = 'COCO_YOLO_IMAGE'
     input_main_dir_label = 'COCO_YOLO_LABEL'
@@ -110,19 +112,35 @@ gc.collect()
 torch.cuda.empty_cache()
 gpu_usage()
 
+logging.basicConfig(filename="./odam.log",
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+
+
 # Select BB used in EXP
 if args.object=='human':
     bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
     bb_selections = bb_selections[['imgnumber','human_count_gt','ExpTargetIndex']]
-else:
+elif args.object=='vehicle':
     bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
     bb_selections = bb_selections[['image','vehicle_count_gt','ExpTargetIndex']]
+# NOTE: From Chenyang. Check his data format.
+elif args.object=='COCO':
+    bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
 
 
-def area(a, b):  # returns None if rectangles don't intersect
-    # y1,x1, y2,x2
-    # a = prediction box, b = GT BB
-    # percentage > 0.5
+def area(a, b, threshold=0.5): 
+    """
+    a = prediction box, b = GT BB
+    in the form of [y1,x1, y2,x2]
+
+    return the max percentage of two below:
+        1. intersect / area of a
+        2. intersect / area of b
+    returns -1 if rectangles don't intersect
+    """
     dx = min(a[3], b[3]) - max(a[1], b[1])
     dy = min(a[2], b[2]) - max(a[0], b[0])
     if (dx>=0) and (dy>=0):
@@ -133,7 +151,7 @@ def area(a, b):  # returns None if rectangles don't intersect
         percentage = max(\
             overlap / ((a[3]-a[1])*(a[2]-a[0])),\
             overlap / ((b[3]-b[1])*(b[2]-b[0])))
-        return  percentage if percentage > 0.5 else -1
+        return  percentage if percentage > threshold else -1
     else:
         return -1
 
@@ -142,7 +160,11 @@ def main(img_path, label_path, model, saliency_method, img_num):
     gc.collect()
     torch.cuda.empty_cache()
 
-    class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
+    if args.object == 'COCO':
+        class_names_gt = [line.strip() for line in open(args.coco_labels)]
+    else:        
+        class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
+
     img = cv2.imread(img_path)
     torch_img = model.preprocessing(img[..., ::-1])
 
@@ -150,6 +172,8 @@ def main(img_path, label_path, model, saliency_method, img_num):
         bb_selection = bb_selections.loc[bb_selections['image']==img_path.split('/')[-1]] # 1029.jpg
     elif args.object=='human':
         bb_selection = bb_selections.loc[bb_selections['imgnumber']==int(img_path.split('/')[-1].replace('.jpg',''))] # 1029.jpg
+    elif args.object=='COCO':
+        bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
     tic = time.time()
     masks, masks_sum, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img)
@@ -182,20 +206,27 @@ def main(img_path, label_path, model, saliency_method, img_num):
     else:
         Vacc = 0
 
-    # Find Target BB's index from pred (y1,x1,y2,x2)
-    # TODO: are bdd GT labels always left to right 
-    indices_GT_sorted = np.concatenate(boxes_GT,axis=0)[:, 1].argsort() # use x1 (top-left) to determine order of target (left to right)
-    target_idx_GT = indices_GT_sorted[bb_selection['ExpTargetIndex'].values[0]-1]
-    target_bbox_GT = boxes_GT[target_idx_GT][0]
+    # Generalize to both whole-image and instance-based saliency maps
+    if args.method == 'odam':
+        # Find best matching target BB's index from pred (y1,x1,y2,x2)
+        # For MSCOCO: Chenyang provided both GT target index and coordinates x1,y1,x2,y2
+        if args.object == 'COCO':
+            target_bbox_GT = bb_selection[['y1','x1','y2','x2']]
+        # For BDD: we only know the target index. Get GT target BB coordiates from input annotations
+        else:
+            indices_GT_sorted = np.concatenate(boxes_GT,axis=0)[:, 1].argsort() # use x1 (top-left) to determine order of target (left to right)
+            target_idx_GT = indices_GT_sorted[bb_selection['ExpTargetIndex'].values[0]-1]
+            target_bbox_GT = boxes_GT[target_idx_GT][0]
 
-    overlaps = np.zeros(len(boxes))
-    target_idx_pred = -1 # May miss the target
-    for i in range(len(boxes)):
-        overlaps[i] = area(boxes[i][0],target_bbox_GT)
-    if len(overlaps) > 0 and overlaps.max() > 0:
-        target_idx_pred = np.argmax(overlaps)
-    # target_bbox_pred = boxes[target_idx_pred]
-
+        overlaps = np.zeros(len(boxes))
+        target_indices_pred = [] # May miss the target
+        for i in range(len(boxes)):
+            overlaps[i] = area(boxes[i][0],target_bbox_GT)
+        if len(overlaps) > 0 and overlaps.max() > 0:
+            target_indices_pred.append(np.argmax(overlaps))
+    else:
+        # preserve all prediction boxes
+        target_indices_pred = range(len(boxes))
 
     ### Display
 
@@ -205,14 +236,14 @@ def main(img_path, label_path, model, saliency_method, img_num):
 
     res_img = result.copy()
     for i, mask in enumerate(masks):
-        if i==target_idx_pred:
+        if i in target_indices_pred:
             res_img, heat_map = ut.get_res_img(mask, res_img)
         # else:
         #     res_img, heat_map = ut.get_res_img(torch.empty_like(mask), res_img)
         # FIXME: color scale when visualizing empty / zeros heatmaps where no maps found at target BB
     for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
         if cls_name[0] in class_names_sel:
-            if i==target_idx_pred:
+            if i in target_indices_pred:
                 #bbox, cls_name = boxes[0][i], class_names[0][i]
                 # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
                 res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], res_img) / 255
@@ -235,10 +266,12 @@ def main(img_path, label_path, model, saliency_method, img_num):
 
     # images.append(gt_img * 255)
     images = [gt_img * 255]
-    if target_idx_pred>=0:
-        images.append(res_img * 255)
+
+    # no matching prediction and therefore empty saliency maps
+    if len(target_indices_pred) == 0:
+        images.append(res_img) # original image
     else:
-        images.append(res_img)
+        images.append(res_img * 255)
     images.append(all_mask_img * 255)
     final_image = ut.concat_images(images)
     img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
@@ -250,10 +283,10 @@ def main(img_path, label_path, model, saliency_method, img_num):
     gc.collect()
     torch.cuda.empty_cache()
 
-    if target_idx_pred >= 0:
-        masks_ndarray = masks[target_idx_pred].squeeze().detach().cpu().numpy()
-    else:
+    if len(target_indices_pred) == 0:
         masks_ndarray = np.zeros(masks[0].squeeze().detach().cpu().numpy().shape)
+    else:
+        masks_ndarray = masks[target_indices_pred].squeeze().detach().cpu().numpy()
 
     # nofaith, aifaith, humanfaith, aihumanfaith
     if sel_faith == 'nofaith':
@@ -373,7 +406,7 @@ if __name__ == '__main__':
 
     for i, (target_layer_group_name, target_layer_group) in enumerate(target_layer_group_dict.items()):
         sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + sel_norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
-        args.output_dir = os.path.join(output_main_dir, sub_dir_name)
+        args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
         args.target_layer = target_layer_group
         saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
                                         sel_norm_str=sel_norm, sel_classes=class_names_sel, sel_XAImethod=args.method, img_size=input_size)
