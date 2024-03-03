@@ -320,8 +320,8 @@ class YOLOV5XAI:
                     else:
                         saliency_map_sum = saliency_map_sum + saliency_map
 
-                    if self.sel_XAImethod == 'odam':
-                        saliency_maps.append(saliency_map.detach().cpu())
+                    # if self.sel_XAImethod == 'odam':
+                    saliency_maps.append(saliency_map.detach().cpu())
 
                 # pred_logit = pred_logit.detach()
                 # logit = logit.detach()
