@@ -4,41 +4,81 @@
 
 clear;
 
-% % DET Hum
-% Path.RawDataPath = 'H:\Projects\HKU_XAI_Project\XAI_Similarity_1\Hum_IdTask_Split_Fixation';
-% Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image';
-% Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231206 Hum DET\whole_image_visualize';
-% Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
-
-% % EXP Hum
-% Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\results\explanation\231018_vehicle_whole_screen_vb_fixed_pos\exp_fixations_split_by_img';
-% Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\attention_maps';
-% Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\visualize';
-% Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
-
-for c = 1:4
-    % if c==1
+for c = 1:2
+    if c==1
+        % DET Veh
+        Path.RawDataPath =  'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\whole_image';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\whole_image_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    end
+    if c==2
+        % DET Hum
+        Path.RawDataPath =  'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\whole_image';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\whole_image_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+    end
+    if c==3
+        % % EXP Veh
+    end
+    if c==4
+        % % EXP Hum
+        % Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\results\explanation\231018_vehicle_whole_screen_vb_fixed_pos\exp_fixations_split_by_img';
+        % Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\attention_maps';
+        % Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\231219 Veh EXP\visualize';
+        % Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    end
+    if c==5
+        % DET Veh Grp1
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp1_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    end
+    if c==6
+        % DET Veh Grp2
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp2_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
+    end
+    if c==7
+        % DET Hum Grp1
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp1_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+    end
+    if c==8
+        % DET Hum Grp2
+        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp2_IdTask_Fixation';
+        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2';
+        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2_visualize';
+        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
+    end
+    % if c==9
     %     % EXP Veh Grp1
     %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp1';
     %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1';
     %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp1_visualize';
     %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
     % end
-    % if c==2
+    % if c==10
     %     % EXP Veh Grp2
     %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_ExpTask_Fixation_grp2';
     %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2';
     %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh EXP\grp2_visualize';
     %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
     % end
-    % if c==3
+    % if c==11
     %     % EXP Hum Grp1
     %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp1';
     %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1';
     %     Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp1_visualize';
     %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
     % end
-    % if c==4
+    % if c==12
     %     % EXP Hum Grp2
     %     Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_ExpTask_Fixation_grp2';
     %     Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum EXP\grp2';
@@ -46,34 +86,6 @@ for c = 1:4
     %     Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
     % end
 
-     if c==1
-        % DET Veh Grp1
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp1_IdTask_Fixation';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp1_visualize';
-        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
-    end
-    if c==2
-        % DET Veh Grp2
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Veh_Yolo_Grp2_IdTask_Fixation';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Veh DET\grp2_visualize';
-        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_veh_id_task_resized\';
-    end
-    if c==3
-        % DET Hum Grp1
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp1_IdTask_Fixation';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp1_visualize';
-        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
-    end
-    if c==4
-        % DET Hum Grp2
-        Path.RawDataPath = 'H:\OneDrive - The University Of Hong Kong\bdd\fixation\split_by_id\Hum_Yolo_Grp2_IdTask_Fixation';
-        Path.matSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2';
-        Path.picSavePath = 'H:\OneDrive - The University Of Hong Kong\bdd\attention_maps\240107 Hum DET\grp2_visualize';
-        Path.backgroundPath = 'H:\OneDrive - The University Of Hong Kong\bdd\images\orib_hum_id_task_resized\';
-    end
 
     Path.CodePath = pwd;
     addpath(genpath(Path.CodePath));
