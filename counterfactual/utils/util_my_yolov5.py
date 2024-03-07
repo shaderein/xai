@@ -121,6 +121,18 @@ def scale_coords_new(img1_shape, coords, img0_shape, ratio_pad=None):
     clip_coords(coords, img0_shape)
     return coords
 
+# From Chenyang's ODAM repo:
+def make_grids(h, w):
+    shifts_x = torch.arange(
+        0, w, 1)
+    shifts_y = torch.arange(
+        0, h, 1)
+    shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x)
+    shift_x = shift_x.reshape(-1)
+    shift_y = shift_y.reshape(-1)
+    grids = torch.stack((shift_x, shift_y), dim=1)
+    return grids
+
 def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel, perturb_level='target',perturb_ratio=100):
     # Compute Region Area
     if perturb_level == 'target':
@@ -142,31 +154,35 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
     # Sort Saliency Map
     delta_thr = 0
     num_thr = 100 # step number (delete/insert total/num_thr pixels each time)
+    pixel_once = max(1, int(valid_area/100))
+    grids = make_grids(img.shape[0],img.shape[1])
+
     masks_ndarray[np.isnan(masks_ndarray)] = 0
     masks_ndarray[masks_ndarray <= delta_thr] = 0
     if sum(sum(masks_ndarray)) == 0:
         masks_ndarray[0, 0] = 1
         masks_ndarray[1, 1] = 0.5
     masks_ndarray_flatten = masks_ndarray.flatten()
-    # masks_ndarray_positive = masks_ndarray_flatten[masks_ndarray_flatten > delta_thr]
-    masks_ndarray_positive = masks_ndarray_flatten
-    masks_ndarray_sort = masks_ndarray_positive
-    masks_ndarray_sort.sort()   # ascend
-    masks_ndarray_sort = masks_ndarray_sort[::-1]   # descend
-    masks_ndarray_sort = masks_ndarray_sort[:valid_area] # Note: delete top `valid_area`th salient pixels
+
+    masks_ndarray_sort_idx = np.argsort(masks_ndarray_flatten)[::-1]  # descend
+    masks_ndarray_sort = masks_ndarray_flatten[masks_ndarray_sort_idx]  
+    # masks_ndarray_sort = masks_ndarray_sort[:valid_area] # Note: delete top `valid_area`th salient pixels
+
     masks_ndarray_RGB = np.expand_dims(masks_ndarray, 2)
     masks_ndarray_RGB = np.concatenate((masks_ndarray_RGB, masks_ndarray_RGB, masks_ndarray_RGB),2)
-    # thr_ascend = np.linspace(masks_ndarray_sort[0], masks_ndarray_sort[-1], num_thr, False)
-    thr_idx = np.floor(np.linspace(0, masks_ndarray_sort.size, num_thr, False))
-    thr_descend = masks_ndarray_sort[thr_idx.astype('int')]
-    thr_ascend = thr_descend[::-1]
+
     img_raw = img
     img_raw_float = img_raw.astype('float')/255
     device = 'cuda' if next(model.model.parameters()).is_cuda else 'cpu'
     torch_img_deletion_rec = torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
-    for i_thr in thr_descend:
-        img_raw_float_use = img_raw_float.copy()
-        img_raw_float_use[masks_ndarray_RGB > i_thr] = np.random.rand(sum(sum(sum(masks_ndarray_RGB > i_thr))), )
+    # Keep inserting on the same image
+    img_raw_float_use = img_raw_float.copy()
+    for i in range(num_thr):
+        perturb_grids = list(masks_ndarray_sort_idx[i*pixel_once:(i+1)*pixel_once])
+        perturb_pos = grids[perturb_grids]
+        perturb_x, perturb_y = zip(*perturb_pos)
+        img_raw_float_use[perturb_y,perturb_x,:] = np.random.rand(pixel_once,3)
+
         img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
         imgs_deletion.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view deletion process
         torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
@@ -201,20 +217,21 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
 
     ### Insertation
     torch_img_insertation_rec = torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
-    pixel_changes = [0]
-    for i, i_thr in enumerate(thr_descend):
-        img_raw_float_use = img_raw_float.copy()
-        img_raw_float_use[masks_ndarray_RGB <= i_thr] = 0
-        pixel_changes.append(np.sum(img_raw_float_use > 0))
+    img_raw_float_use = np.zeros_like(img_raw_float)
+
+    for i in range(num_thr):
+        insert_grids = list(masks_ndarray_sort_idx[i*pixel_once:(i+1)*pixel_once])
+        insert_pos = grids[insert_grids]
+        insert_x, insert_y = zip(*insert_pos)
+
+        img_raw_float_use[insert_y,insert_x,:] = img_raw_float[insert_y,insert_x,:]
+
         img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
         imgs_insertation.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view insertion process
         torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
         torch_img_insertation_rec = torch.cat((torch_img_insertation_rec, torch_img_rand), 0)
     with torch.no_grad():
         preds_insertation, logits_insertation, preds_logits_insertation, classHead_output_insertation = model(torch_img_insertation_rec)
-        print(f"idx\tsaliency threshold\tchanged\tobj prob")
-        for i, i_thr in enumerate(thr_descend):
-            print(f"{i}\t>{i_thr:02f}\t{pixel_changes[i+1] - pixel_changes[i]}\t{max(preds_insertation[3][i]) if preds_insertation[3][i] else 0}")
 
     pred_insertation_adj = [[[] for _ in range(num_thr)] for _ in range(5)]
     for i, (bbox, cls_idx, cls_name, conf) in enumerate(zip(preds_insertation[0], preds_insertation[1], preds_insertation[2], preds_insertation[3])):
@@ -239,7 +256,7 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
     # plt.imshow(img_show_ndarray_cat)
     # plt.show()
 
-    return pred_deletion_adj, pred_insertation_adj, thr_descend, imgs_deletion, imgs_insertation
+    return pred_deletion_adj, pred_insertation_adj, None, imgs_deletion, imgs_insertation
 
 def compute_faith_specificBBox(model, img, masks_ndarray, label_data_corr_xywh):
     # Compute Region Area
