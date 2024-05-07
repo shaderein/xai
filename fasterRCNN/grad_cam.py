@@ -12,6 +12,40 @@ import torch.nn.functional as F
 import utils_previous as ut
 import math
 
+def roi_map_to_original_image(pool_dams, rois, original_size):
+    """
+    Map pooled feature data/saliency maps back to the original image size, ensuring ROI does not exceed image boundaries.
+    Reference: https://github.com/Cyang-Zhao/ODAM/blob/e776c3b69050038cbf6a640e5d7b78a930458341/model/rcnn_odamTrain/network.py#L238
+
+    :param pool_dams: Tensor of shape [N, 1, H_pool, W_pool], the pooled feature data.
+    :param rois: Tensor of shape [N, 4] (x1, y1, x2, y2) based on original image dimensions.
+    :param original_size: Tuple (height, width) of the original image size.
+    :return: Tensor of shape [N, original_size[0], original_size[1]], mapped feature data.
+    """
+    N, c, h_pool, w_pool = pool_dams.shape
+    assert c == 1 # have already sum over channels when calculating saliency maps
+    images = torch.zeros((N, c, original_size[0], original_size[1]), device=pool_dams.device)
+
+    for i in range(N):
+        # Extract ROI and clamp coordinates to ensure they stay within the image boundaries
+        x1, y1, x2, y2 = rois[i]
+        x1 = x1.clamp(min=0, max=original_size[1] - 1).floor()
+        y1 = y1.clamp(min=0, max=original_size[0] - 1).floor()
+        x2 = x2.clamp(min=x1 + 1, max=original_size[1]).ceil()
+        y2 = y2.clamp(min=y1 + 1, max=original_size[0]).ceil()
+
+        x1,y1,x2,y2 = int(x1),int(y1),int(x2),int(y2)
+        target_h, target_w = y2 - y1, x2 - x1
+
+        # Resize the pooled features to match the size of the clamped ROI
+        resized_feature = F.interpolate(
+            pool_dams[i].unsqueeze(0), size=(target_h, target_w), mode='bilinear', align_corners=False)
+
+        # Place the resized features into the corresponding location on the blank original-sized image
+        images[i, 0, y1:y2, x1:x2] = resized_feature
+
+    return images
+
 def generate_mask(image_size, grid_size, prob_thresh):
     image_w, image_h = image_size
     grid_w, grid_h = grid_size
@@ -142,7 +176,7 @@ class GradCAM:
 
             res += mask * max_score
 
-            print(_, max_score)
+            # print(_, max_score)
             # 删除不再使用的变量
             del masked, pred_list, pred_class, score_list
             # 释放显存
@@ -187,10 +221,10 @@ class GradCAM:
         pred_list.append([])
         pred_list.append([])
         pred_list.append([])
-        for output_score, proposal_idx, box_corr, class_id in zip(output[0]['instances'].scores, output[0]['instances'].indices, output[0]['instances'].pred_boxes.tensor, output[0]['instances'].pred_classes):
-            if self.class_names[class_id] == 'car' or self.class_names[class_id] == 'bus' or self.class_names[class_id] == 'truck':
+        for output_score, box_corr, class_id in zip(output[0]['instances'].scores, output[0]['instances'].pred_boxes.tensor, output[0]['instances'].pred_classes):
+            if self.class_names[class_id] in self.sel_classes:
             # if self.class_names[class_id] == 'person' or self.class_names[class_id] == 'rider':
-                print(output)
+                # print(output)
                 score = output_score                                        #output[0]['instances'].scores[index]
                 # proposal_idx = output[0]['instances'].indices[index]  # box来自第几个proposal
                 self.net.zero_grad()
@@ -243,8 +277,17 @@ class GradCAM:
                     # plt.axis('off')
                     # plt.show()
 
-                # Common
-                saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+                elif self.sel_XAImethod == 'odam':
+                    saliency_map = F.relu((gradients * activations).sum(1, keepdim=True))#.sum(0, keepdim=True))
+
+                # For ROI pooling layer's saliency map, combine all proposals 
+                #   and map to correspondinglocation of the image
+                if saliency_map.size()[0] != 1: # more than 1 maps due to different proposals
+                    # with torch.no_grad():
+                    proposals = self.net.inference([inputs],do_postprocess=False,output_proposals=True)[0].proposal_boxes.tensor.detach()
+                    saliency_map = roi_map_to_original_image(saliency_map, proposals, (h,w)).sum(0,keepdim=True)
+                else: # Backbone layers, directly interpolate to image size
+                    saliency_map = F.interpolate(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
 
                 if self.sel_norm_str == 'norm':
                     saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
@@ -256,8 +299,12 @@ class GradCAM:
                 else:
                     saliency_map_sum = saliency_map_sum + saliency_map
 
+                saliency_maps.append(saliency_map.detach().cpu())
+
+
         if nObj == 0:
             saliency_map_sum = torch.zeros([1, 1, h, w])
+            saliency_maps.append(torch.zeros([1, 1, h, w]))
         else:
             saliency_map_sum = saliency_map_sum / nObj
 
@@ -268,24 +315,21 @@ class GradCAM:
         # saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
 
         # saliency_map_sum = F.relu(saliency_map_sum)
-        saliency_map = saliency_map_sum
-        saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
-        saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
-        saliency_map = saliency_map.detach().cpu()
-        saliency_maps.append(saliency_map)
 
-        # if output[0]['instances'].scores.numel():
-        #     # score = pred_logit
-        try:
-            score.backward()
-        except:
-            print('No Score')
+        saliency_map_sum_min, saliency_map_sum_max = saliency_map_sum.min(), saliency_map_sum.max()
+        saliency_map_sum = (saliency_map_sum - saliency_map_sum_min).div(saliency_map_sum_max - saliency_map_sum_min).data
+        saliency_map_sum = saliency_map_sum.detach().cpu()
+
+        # if nObj > 0 and output[0]['instances'].scores.numel():
+        #     score.backward()
+        # else:
+        #     print('No Score')
 
         FrameStack = np.empty((len(raw_data_rec),), dtype=np.object)
         for i in range(len(raw_data_rec)):
             FrameStack[i] = raw_data_rec[i]
 
-        return saliency_maps, pred_list, class_prob_list, FrameStack
+        return saliency_maps, saliency_map_sum, pred_list, class_prob_list, FrameStack
 
 
 # class GradCamPlusPlus(GradCAM):

@@ -1,7 +1,10 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import argparse
 import multiprocessing as mp
-import os
+import os,re
 
 import cv2
 import detectron2.data.transforms as T
@@ -17,10 +20,12 @@ from grad_cam import GradCAM        #, GradCamPlusPlus
 from skimage import io
 from torch import nn
 from utils_previous import get_res_img, put_text_box, concat_images, calculate_acc, scale_coords_new, xyxy2xywh, xywh2xyxy
+import util_my_yolov5 as ut
 
 import argparse
 from deep_utils import Box, split_extension
 import scipy.io
+import pandas as pd
 # from numba import cuda
 from GPUtil import showUtilization as gpu_usage
 import gc
@@ -32,66 +37,39 @@ import math
 # constants
 WINDOW_NAME = "COCO detections"
 
-# target_layer_group_list = ['backbone.res4.5.conv3',
-#                               'backbone.res4.0.conv3',
-#                               'backbone.res3.3.conv3',
-#                               'backbone.res3.0.conv3',
-#                               'backbone.res2.2.conv3',
-#                               'backbone.res2.0.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6']
+# Hyperparameter Settings
+target_layer_group_dict = {
+    "F1" : 'backbone.res2.0.conv3',
+    "F2" : 'backbone.res2.1.conv3',
+    "F3" : 'backbone.res2.2.conv3',
+    "F4" : 'backbone.res3.0.conv3',
+    "F5" : 'backbone.res3.1.conv3',
+    "F6" : 'backbone.res3.2.conv3', 
+    "F7" : 'backbone.res3.3.conv3', 
+    "F8" : 'backbone.res4.0.conv3', 
+    "F9" : 'backbone.res4.1.conv3', 
+    "F10" : 'backbone.res4.2.conv3', 
+    "F11" : 'backbone.res4.3.conv3', 
+    "F12" : 'backbone.res4.4.conv3', 
+    "F13" : 'backbone.res4.5.conv3',
 
-# target_layer_group_list = ['backbone.res2.2.conv3',
-#                               'backbone.res2.0.conv3']                  #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F5', 'F6']
+    #ROI pooler
+    "F14" : 'roi_heads.pooler.level_poolers.0',
+    'F15' : 'roi_heads.res5.0.conv3',
+    'F16' : 'roi_heads.res5.1.conv3',
+    'F17' : 'roi_heads.res5.2.conv3'}
 
-# target_layer_group_list = [ 'backbone.res4.2.conv3',
-#                               'backbone.res4.1.conv3',
-#                               'backbone.res4.0.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F4', 'F5', 'F6']
-
-# target_layer_group_list = ['backbone.res4.4.conv3',
-#                               'backbone.res4.3.conv3',
-#                               'backbone.res4.2.conv3',
-#                               'backbone.res4.1.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F2', 'F3', 'F4', 'F5']
-
-# target_layer_group_list = ['backbone.res4.0.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F6']
-
-# target_layer_group_list = ['backbone.res3.3.conv3',
-#                            'backbone.res3.2.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F7', 'F8']
-
-target_layer_group_list = ['backbone.res4.5.conv3'],                    #F1
-target_layer_group_list = target_layer_group_list[0]
-target_layer_group_name_list = ['F1']
-
-# target_layer_group_list = ['backbone.res3.1.conv3',
-#                               'backbone.res3.0.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F9', 'F10']
-
-# target_layer_group_list = ['backbone.res2.0.conv3'],                    #F1
-# target_layer_group_list = target_layer_group_list[0]
-# target_layer_group_name_list = ['F13']
-
-input_main_dir = 'orib_hum_id_task1009'   #Veh_id_img
-input_main_dir_label = 'orib_hum_id_task1009_label'   #Veh_id_label
-output_main_dir = 'orib_hum_id_task1009_label_output_FasterRCNNself_trainedXAI_OnlyAF'    # _humanAttention _trainedXAI
-sel_method = 'fullgradcam'
+coco_labels_path = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/COCO_classes.txt"
+class_names_gt = [line.strip() for line in open(coco_labels_path)]
+input_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/DET'   #Veh_id_img
+input_main_dir_label = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/annotations_DET'   #Veh_id_label
+output_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/xai_saliency_maps_faster/fullgradcamraw'    # _humanAttention _trainedXAI
+sel_method = 'fullgradcamraw'
 sel_nms = 'NMS'
 sel_prob = 'class'
 sel_norm = 'norm'
-sel_model = 'FasterRCNN_C4_BDD100K.pt'
-sel_model_str = sel_model.split('/')[-1][:-3]
-
-class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
+sel_model = '/mnt/h/jinhan/xai/models/model_final_721ade.pkl'
+sel_model_str = sel_model.split('/')[-1][:-3].replace('.','')
 
 
 # Arguments
@@ -99,22 +77,28 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model-path', type=str, default=sel_model, help='Path to the model')
 parser.add_argument('--img-path', type=str, default=input_main_dir, help='input image path')
 parser.add_argument('--output-dir', type=str, default='sample_EM_idtask_1_output_update_2/GradCAM_NMS_objclass_F0_singleScale_norm_v5s_1', help='output dir')
+parser.add_argument('--output-main-dir', type=str, default=output_main_dir, help='output root dir')
 parser.add_argument('--img-size', type=int, default=608, help="input image size")
-parser.add_argument('--target-layer', type=list, default=list(target_layer_group_list[0]),
+parser.add_argument('--target-layer', type=list, default='F1',
                     help='The layer hierarchical address to which gradcam will applied,'
                          ' the names should be separated by underline')
 
-parser.add_argument('--method', type=str, default=sel_method, help='gradcam or eigencam or eigengradcam or weightedgradcam or gradcampp or fullgradcam')
+parser.add_argument('--method', type=str, default="fullgradcamraw", help='gradcam or eigencam or eigengradcam or weightedgradcam or gradcampp or fullgradcam')
 parser.add_argument('--device', type=str, default='cuda', help='cuda or cpu')
 parser.add_argument('--names', type=str, default=None,
                     help='The name of the classes. The default is set to None and is set to coco classes. Provide your custom names as follow: object1,object2,object3')
 parser.add_argument('--label-path', type=str, default=input_main_dir_label, help='input label path')
+
+parser.add_argument('--object', type=str, default="vehicle", help='human or vehicle')
+parser.add_argument('--prob', type=str, default="class", help='obj, class, objclass')
+parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help='path to coco classes list')
 
 args = parser.parse_args()
 
 gc.collect()
 torch.cuda.empty_cache()
 gpu_usage()
+
 
 def setup_cfg(args):
     # load config from file and command-line arguments
@@ -230,7 +214,7 @@ def get_parser(img_path, run_device):
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin models")
     parser.add_argument(
         "--config-file",
-        default="C:/D/HKU_XAI_Project/FasterRCNNself_GradCAM_pytorch_master_G1/detection/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        default="/mnt/h/jinhan/xai/fasterRCNNBDD/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -252,7 +236,7 @@ def get_parser(img_path, run_device):
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=["MODEL.WEIGHTS", "C:/D/HKU_XAI_Project/FasterRCNNself_GradCAM_pytorch_master_G1/detection/model_FasterRCNN_C4_1x_30epoch.pth", "MODEL.DEVICE", run_device],
+        default=["MODEL.WEIGHTS", "/mnt/h/jinhan/xai/models/model_final_721ade.pkl", "MODEL.DEVICE", run_device],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -415,7 +399,36 @@ def rescale_box_list(boxes, shape_raw, shape_new):
 
     return boxes_rescale_xyxy, boxes_rescale_xywh, boxes
 
-def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_num):
+
+bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
+
+
+def area(a, b, threshold=0.5): 
+    """
+    a = prediction box, b = GT BB
+    in the form of [y1,x1, y2,x2]
+
+    return the max percentage of two below:
+        1. intersect / area of a
+        2. intersect / area of b
+    returns -1 if rectangles don't intersect
+    """
+    dx = min(a[3], b[3]) - max(a[1], b[1])
+    dy = min(a[2], b[2]) - max(a[0], b[0])
+    if (dx>=0) and (dy>=0):
+        overlap = dx*dy
+        # For vehicle: prediction box is usually smaller than GT BB
+        # For human: prediction box is ually larger than GT BB
+        # Thus take the max to prevent missing the correct prediction box
+        percentage = max(\
+            overlap / ((a[3]-a[1])*(a[2]-a[0])),\
+            overlap / ((b[3]-b[1])*(b[2]-b[0])))
+        return  percentage if percentage > threshold else -1
+    else:
+        return -1
+
+def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_num,
+        sel_norm="norm", sel_method="fullgradcamraw"):
     # sel_norm_str = 'norm'
 
 
@@ -424,7 +437,7 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     # logger.info("Arguments: " + str(arguments))
     #
     cfg = setup_cfg(arguments)
-    print(cfg)
+    # print(cfg)
     # # 构建模型
     # model = build_model(cfg)
     # # 加载权重
@@ -447,15 +460,24 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     meta = MetadataCatalog.get(
         cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
     )
-    # class_names_all = meta.thing_classes
-    class_names_all = class_names_gt
+
+    bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
+
+    # class used in experiments
+    class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
+    if class_name not in class_names_gt:
+        print(f'[WARNING] {item_img} category parsed as {class_name}')
+        return
+    class_names_sel = [class_name] # generate saliency maps for specific category
 
     # Grad-CAM
     # layer_name = get_last_conv_name(model)
     layer_name = target_layer_group
-    saliencyMap_method = GradCAM(net=model, layer_name=layer_name, class_names=class_names_all, sel_norm_str=sel_norm,
+    saliencyMap_method = GradCAM(net=model, layer_name=layer_name, class_names=class_names_gt, sel_norm_str=sel_norm,
                                  sel_method=sel_method)
-    masks, [boxes, _, class_names], class_prob_list, raw_data = saliencyMap_method(inputs)  # cam mask
+    saliencyMap_method.sel_classes = class_names_sel
+    masks, masks_sum, [boxes, _, class_names], class_prob_list, raw_data = saliencyMap_method(inputs)  # cam mask
+    
     saliencyMap_method.remove_handlers()
 
 
@@ -468,8 +490,14 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     result_raw = result
     images = [img]
     result = img
-    masks[0] = F.upsample(masks[0], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-    masks[0] = masks[0]
+    
+    for i in range(len(masks)):
+        # DEBUG
+        masks[i] = F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+    masks_sum = F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+
+    if sel_method != 'odam':    
+        masks = [masks_sum]
 
     ### Rescale Boxes
     if len(boxes):
@@ -494,24 +522,27 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     # boxes[0][0] = [576, 0, 100, 200]
 
     ### Load labels
-    label_data = np.loadtxt(label_path, dtype=np.float32, delimiter=' ')
-    if len(label_data.shape) == 1:
-        label_data = label_data[None, :]
-    label_data_class = label_data[:, 0]
-    label_data_corr = label_data[:, 1:]
-    label_data_corr = label_data_corr[label_data_class < 2, :]  # filter classes
-    label_data_class = label_data_class[label_data_class < 2]  # filter class labels
-    img_h, img_w = np.size(img, 0), np.size(img, 1)
-    label_data_corr[:, 0] = label_data_corr[:, 0] * img_w
-    label_data_corr[:, 1] = label_data_corr[:, 1] * img_h
-    label_data_corr[:, 2] = label_data_corr[:, 2] * img_w
-    label_data_corr[:, 3] = label_data_corr[:, 3] * img_h
-    label_data_corr_xywh = label_data_corr
-    label_data_corr = xywh2xyxy(label_data_corr)
-    label_data_corr_xyxy = label_data_corr
-    label_data_corr_yxyx = label_data_corr[:, [1, 0, 3, 2]]
-    label_data_corr_yxyx = np.round(label_data_corr_yxyx)
-    boxes_GT = label_data_corr_yxyx[:, None, :].tolist()
+    # label_data = np.loadtxt(label_path, dtype=np.float32, delimiter=' ')
+    # if len(label_data.shape) == 1:
+    #     label_data = label_data[None, :]
+    # label_data_class = label_data[:, 0]
+    # label_data_corr = label_data[:, 1:]
+    # label_data_corr = label_data_corr[label_data_class < 2, :]  # filter classes
+    # label_data_class = label_data_class[label_data_class < 2]  # filter class labels
+    # img_h, img_w = np.size(img, 0), np.size(img, 1)
+    # label_data_corr[:, 0] = label_data_corr[:, 0] * img_w
+    # label_data_corr[:, 1] = label_data_corr[:, 1] * img_h
+    # label_data_corr[:, 2] = label_data_corr[:, 2] * img_w
+    # label_data_corr[:, 3] = label_data_corr[:, 3] * img_h
+    # label_data_corr_xywh = label_data_corr
+    # label_data_corr = xywh2xyxy(label_data_corr)
+    # label_data_corr_xyxy = label_data_corr
+    # label_data_corr_yxyx = label_data_corr[:, [1, 0, 3, 2]]
+    # label_data_corr_yxyx = np.round(label_data_corr_yxyx)
+    # boxes_GT = label_data_corr_yxyx[:, None, :].tolist()
+
+    boxes_GT, label_data_corr_xyxy, label_data_corr_xywh, label_data_corr_yxyx, label_data_class, label_data_class_names\
+        = ut.load_gt_labels(img, label_path, class_names_gt, class_names_sel)
 
     masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
 
@@ -527,7 +558,7 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         res_img, heat_map = get_res_img(mask, res_img)
     obj_prob = []
     for i, (bbox, cls_name, class_prob) in enumerate(zip(boxes, class_names, class_prob_list)):
-        if cls_name[0] == 'person' or cls_name[0] == 'rider':
+        if cls_name[0] in class_names_sel:
             # bbox, cls_name = boxes[0][i], class_names[0][i]
             # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
             res_img = put_text_box(bbox[0], cls_name[0] + ", " + str(class_prob.cpu().detach().numpy()[0] * 100)[:2],
@@ -539,7 +570,7 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     gt_img = gt_img / gt_img.max()
     for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
         cls_idx = np.int8(cls_idx)
-        if class_names_gt[cls_idx] == 'person' or class_names_gt[cls_idx] == 'rider':
+        if class_names_gt[cls_idx] in class_names_sel:
             # bbox, cls_name = boxes[0][i], class_names[0][i]
             # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
             gt_img = put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
@@ -558,20 +589,18 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     torch.cuda.empty_cache()
 
     # # AI Saliency Map Computation
-    # masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
+    masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
     # preds_deletion, preds_insertation, _ = compute_faith(model, img, masks_ndarray, label_data_corr_xywh, cfg)
     #
-    # scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-    #                                               'boxes_pred_xyxy': boxes_rescale_xyxy,
-    #                                               'boxes_pred_xywh': boxes_rescale_xywh,
-    #                                               'boxes_gt_xywh': label_data_corr_xywh,
-    #                                               'boxes_gt_xyxy': label_data_corr_xyxy,
-    #                                               'HitRate': Vacc,
-    #                                               'boxes_pred_conf': obj_prob,
-    #                                               'preds_deletion': preds_deletion,
-    #                                               'preds_insertation': preds_insertation,
-    #                                               'boxes_pred_class_names': class_names,
-    #                                               })
+    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                  'boxes_pred_xyxy': boxes_rescale_xyxy,
+                                                  'boxes_pred_xywh': boxes_rescale_xywh,
+                                                  'boxes_gt_xywh': label_data_corr_xywh,
+                                                  'boxes_gt_xyxy': label_data_corr_xyxy,
+                                                  'HitRate': Vacc,
+                                                  'boxes_pred_conf': obj_prob,
+                                                  'boxes_pred_class_names': class_names,
+                                                  })
 
     # # # Human Saliency Map Loading
     # human_saliency_map_path = 'E:/HKU/HKU_XAI_Project/XAI_Similarity_1/human_saliency_map_hum_new_1/' + img_num + '_GSmo_30.mat'
@@ -604,23 +633,23 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     #                                               })
 
     # TrainedXAI Saliency Map Loading
-    trainedXAI_saliency_map_path = 'E:\HKU\HKU_XAI_Project\Human_Inspired_XAI_Try2_FasterRCNN_detectHuman\saveRawSaliencyMapData_testSet_FasterRCNN_GaussianConv_OnlyAF/' + img_num + '_trainedSaliencyMap.mat'
-    trainedXAI_saliency_map = scipy.io.loadmat(trainedXAI_saliency_map_path)['PredData_raw']
-    trainedXAI_deletion, trainedXAI_insertation, _ = compute_faith(model, img, trainedXAI_saliency_map,
-                                                                      label_data_corr_xywh, cfg)
+    # trainedXAI_saliency_map_path = 'E:\HKU\HKU_XAI_Project\Human_Inspired_XAI_Try2_FasterRCNN_detectHuman\saveRawSaliencyMapData_testSet_FasterRCNN_GaussianConv_OnlyAF/' + img_num + '_trainedSaliencyMap.mat'
+    # trainedXAI_saliency_map = scipy.io.loadmat(trainedXAI_saliency_map_path)['PredData_raw']
+    # trainedXAI_deletion, trainedXAI_insertation, _ = compute_faith(model, img, trainedXAI_saliency_map,
+    #                                                                   label_data_corr_xywh, cfg)
 
-    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                  'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                  'boxes_pred_xywh': boxes_rescale_xywh,
-                                                  'boxes_gt_xywh': label_data_corr_xywh,
-                                                  'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                  'HitRate': Vacc,
-                                                  'boxes_pred_conf': obj_prob,
-                                                  'boxes_pred_class_names': class_names,
-                                                  'grad_act': raw_data,
-                                                  'trainedXAI_deletion': trainedXAI_deletion,
-                                                  'trainedXAI_insertation': trainedXAI_insertation
-                                                  })
+    # scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+    #                                               'boxes_pred_xyxy': boxes_rescale_xyxy,
+    #                                               'boxes_pred_xywh': boxes_rescale_xywh,
+    #                                               'boxes_gt_xywh': label_data_corr_xywh,
+    #                                               'boxes_gt_xyxy': label_data_corr_xyxy,
+    #                                               'HitRate': Vacc,
+    #                                               'boxes_pred_conf': obj_prob,
+    #                                               'boxes_pred_class_names': class_names,
+    #                                               'grad_act': raw_data,
+    #                                               'trainedXAI_deletion': trainedXAI_deletion,
+    #                                               'trainedXAI_insertation': trainedXAI_insertation
+    #                                               })
 
 
 # if __name__ == "__main__":
@@ -639,37 +668,37 @@ if __name__ == '__main__':
 
     print('[INFO] Loading the model')
 
-    arguments = get_parser(os.path.join(args.img_path, 'test.jpg'), device).parse_args()
+    arguments = get_parser(os.path.join(args.img_path, 'airplane_167540.png'), device).parse_args()
     setup_logger(name="fvcore")
     logger = setup_logger()
     logger.info("Arguments: " + str(arguments))
     cfg = setup_cfg(arguments)
-    print(cfg)
+    # print(cfg)
     # 构建模型
     model = build_model(cfg)
     # 加载权重
     checkpointer = DetectionCheckpointer(model)
     checkpointer.load(cfg.MODEL.WEIGHTS)
 
-    for i, (target_layer_group, target_layer_group_name) in enumerate(zip(target_layer_group_list, target_layer_group_name_list)):
-        sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str + '_' + '1'
+    for i, (target_layer_group_name,target_layer_group) in enumerate(target_layer_group_dict.items()):
+        # if target_layer_group_name not in ['F15','F16','F17']: continue
+        
+        sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
         args.output_dir = os.path.join(output_main_dir, sub_dir_name)
         args.target_layer = target_layer_group
 
         if os.path.isdir(args.img_path):
             img_list = os.listdir(args.img_path)
             label_list = os.listdir(args.label_path)
-            print(img_list)
+            # print(img_list)
             # img_list.reverse()
             # label_list.reverse()
             for item_img in img_list:
+                if os.path.exists(os.path.join(args.output_dir, split_extension(item_img,suffix='-res'))):
+                    continue
                 item_label = item_img[:-4]+'.txt'
-                try:
-                    arguments = get_parser(os.path.join(args.img_path, item_img), device).parse_args()
-                    main(arguments, os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), target_layer_group, model, cfg, item_img[:-4])
-                except:
-                    arguments = get_parser(os.path.join(args.img_path, item_img), "cpu").parse_args()
-                    main(arguments, os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), target_layer_group, model, cfg, item_img[:-4])
+                arguments = get_parser(os.path.join(args.img_path, item_img), device).parse_args()
+                main(arguments, os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), target_layer_group, model, cfg, item_img[:-4])
 
                 # del model, saliency_method
                 gc.collect()

@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import argparse
 import multiprocessing as mp
@@ -13,7 +16,7 @@ from detectron2.data import MetadataCatalog
 from detectron2.data.detection_utils import read_image
 from detectron2.modeling import build_model
 from detectron2.utils.logger import setup_logger
-from grad_cam import GradCAM        #, GradCamPlusPlus
+from grad_cam import GradCAM, bbox_iou        #, GradCamPlusPlus
 from skimage import io
 from torch import nn
 from utils_previous import get_res_img, put_text_box, concat_images, calculate_acc, scale_coords_new, xyxy2xywh, xywh2xyxy
@@ -48,15 +51,24 @@ target_layer_group_dict = {
     "F10" : 'backbone.res4.2.conv3', 
     "F11" : 'backbone.res4.3.conv3', 
     "F12" : 'backbone.res4.4.conv3', 
-    "F13" : 'backbone.res4.5.conv3'
-}
+    "F13" : 'backbone.res4.5.conv3',
 
-coco_labels_path = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/COCO_classes.txt"
-class_names_gt = [line.strip() for line in open(coco_labels_path)]
+    #ROI
+    "F14" : 'roi_heads.pooler.level_poolers.0',
+    'F15' : 'roi_heads.res5.0.conv3',
+    'F16' : 'roi_heads.res5.1.conv3',
+    'F17' : 'roi_heads.res5.2.conv3'}
+
+# output_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/xai_saliency_maps/'    # _humanAttention _trainedXAI
+# sel_method = 'fullgradcamraw'
+
+output_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/xai_saliency_maps_faster/odam'
+sel_method = 'odam'
+
 input_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/DET'   #Veh_id_img
 input_main_dir_label = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/annotations_DET'   #Veh_id_label
-output_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/xai_saliency_maps/'    # _humanAttention _trainedXAI
-sel_method = 'fullgradcamraw'
+coco_labels_path = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/COCO_classes.txt"
+class_names_gt = [line.strip() for line in open(coco_labels_path)]
 sel_nms = 'NMS'
 sel_prob = 'class'
 sel_norm = 'norm'
@@ -81,7 +93,7 @@ parser.add_argument('--names', type=str, default=None,
                     help='The name of the classes. The default is set to None and is set to coco classes. Provide your custom names as follow: object1,object2,object3')
 parser.add_argument('--label-path', type=str, default=input_main_dir_label, help='input label path')
 
-parser.add_argument('--object', type=str, default="vehicle", help='human or vehicle')
+parser.add_argument('--object', type=str, default="COCO", help='human or vehicle')
 parser.add_argument('--prob', type=str, default="class", help='obj, class, objclass')
 parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help='path to coco classes list')
 
@@ -392,9 +404,6 @@ def rescale_box_list(boxes, shape_raw, shape_new):
     return boxes_rescale_xyxy, boxes_rescale_xywh, boxes
 
 
-bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
-
-
 def area(a, b, threshold=0.5): 
     """
     a = prediction box, b = GT BB
@@ -420,7 +429,7 @@ def area(a, b, threshold=0.5):
         return -1
 
 def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_num,
-        sel_norm="norm", sel_method="fullgradcamraw"):
+        sel_norm="norm"):
     # sel_norm_str = 'norm'
 
 
@@ -453,6 +462,8 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         cfg.DATASETS.TEST[0] if len(cfg.DATASETS.TEST) else "__unused"
     )
 
+    # Find instance used in experiments
+    bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
     bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
     # class used in experiments
@@ -468,7 +479,7 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     saliencyMap_method = GradCAM(net=model, layer_name=layer_name, class_names=class_names_gt, sel_norm_str=sel_norm,
                                  sel_method=sel_method)
     saliencyMap_method.sel_classes = class_names_sel
-    masks, [boxes, _, class_names], class_prob_list, raw_data = saliencyMap_method(inputs)  # cam mask
+    masks, masks_sum, [boxes, _, class_names], class_prob_list, raw_data = saliencyMap_method(inputs)  # cam mask
     saliencyMap_method.remove_handlers()
 
 
@@ -481,8 +492,13 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     result_raw = result
     images = [img]
     result = img
-    masks[0] = F.upsample(masks[0], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-    masks[0] = masks[0]
+
+    for i in range(len(masks)):
+        masks[i] = F.upsample(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+    masks_sum = F.upsample(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+
+    if sel_method != 'odam':    
+        masks = [masks_sum]
 
     ### Rescale Boxes
     if len(boxes):
@@ -528,27 +544,70 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
 
     boxes_GT, label_data_corr_xyxy, label_data_corr_xywh, label_data_corr_yxyx, label_data_class, label_data_class_names\
         = ut.load_gt_labels(img, label_path, class_names_gt, class_names_sel)
-
-    masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
-
     ### Calculate AI Performance
     if len(boxes):
         Vacc = calculate_acc(boxes_rescale_xywh, label_data_corr_xywh) / len(boxes_GT)
     else:
         Vacc = 0
 
+        # Generalize to both whole-image and instance-based saliency maps
+    if sel_method == 'odam':
+        # Find best matching target BB's index from pred (y1,x1,y2,x2)
+        # For MSCOCO: Chenyang provided both GT target index and coordinates x1,y1,x2,y2
+        if  args.object == 'COCO':
+            target_bbox_GT = [bb_selection[['y1']].y1.item()*img.shape[0],
+                              bb_selection[['x1']].x1.item()*img.shape[1],
+                              bb_selection[['y2']].y2.item()*img.shape[0],
+                              bb_selection[['x2']].x2.item()*img.shape[1]]
+            boxes_GT_overlaps = [area(box_GT[0],target_bbox_GT,threshold=0.1) for box_GT in boxes_GT]
+            target_idx_GT = np.argmax(boxes_GT_overlaps)
+        # For BDD: we only know the target index. Get GT target BB coordiates from input annotations
+        else:
+            indices_GT_sorted = np.concatenate(boxes_GT,axis=0)[:, 1].argsort() # use x1 (top-left) to determine order of target (left to right)
+            target_idx_GT = indices_GT_sorted[bb_selection['ExpTargetIndex'].values[0]-1]
+            target_bbox_GT = boxes_GT[target_idx_GT][0]
+
+        overlaps = np.zeros(len(boxes))
+        target_indices_pred = [] # May miss the target
+        for i in range(len(boxes)):
+            # overlaps[i] = area(boxes[i][0],target_bbox_GT,threshold=0.1)
+            overlaps[i] = bbox_iou(boxes[i][0],target_bbox_GT)
+            if overlaps[i] < 0.1: overlaps[i] = 0
+        if len(overlaps) > 0 and overlaps.max() > 0:
+            target_indices_pred.append(np.argmax(overlaps))
+    else:
+        # preserve all prediction boxes
+        target_indices_pred = range(len(boxes)) #FIXME
+
     ### Display
+
+    # Generate whole-image saliency maps as reference        
+    all_mask_img = result.copy()
+    all_mask_img, heat_map = ut.get_res_img(masks_sum, all_mask_img)
+
+    res_img = result.copy()
     for i, mask in enumerate(masks):
-        res_img = result.copy()
-        res_img, heat_map = get_res_img(mask, res_img)
+        if i in target_indices_pred:
+            res_img, heat_map = get_res_img(mask, res_img)
     obj_prob = []
     for i, (bbox, cls_name, class_prob) in enumerate(zip(boxes, class_names, class_prob_list)):
         if cls_name[0] in class_names_sel:
-            # bbox, cls_name = boxes[0][i], class_names[0][i]
-            # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-            res_img = put_text_box(bbox[0], cls_name[0] + ", " + str(class_prob.cpu().detach().numpy()[0] * 100)[:2],
-                                   res_img) / 255
-            obj_prob.append([class_prob.cpu().detach().numpy()[0]])
+            if i in target_indices_pred:
+                # bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                res_img = put_text_box(bbox[0], cls_name[0] + ", " + str(class_prob.cpu().detach().numpy()[0] * 100)[:2],
+                                    res_img) / 255
+                all_mask_img = put_text_box(bbox[0], cls_name[0] + ", " + str(class_prob.cpu().detach().numpy()[0] * 100)[:2],
+                    all_mask_img) / 255
+                
+                # FIXME: check EXP BB selection
+                res_img = ut.put_text_box(target_bbox_GT, "GT BB for EXP", res_img, color=(255,0,0)) / 255
+
+
+                obj_prob.append([class_prob.cpu().detach().numpy()[0]])
+            else:
+                all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ", " + str(class_prob.cpu().detach().numpy()[0] * 100)[:2],
+                    all_mask_img, color=(0,0,255)) / 255
 
     ## Display Ground Truth
     gt_img = result.copy()
@@ -556,13 +615,24 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
         cls_idx = np.int8(cls_idx)
         if class_names_gt[cls_idx] in class_names_sel:
-            # bbox, cls_name = boxes[0][i], class_names[0][i]
-            # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-            gt_img = put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
+            if i==target_idx_GT:
+                # bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img, color=(0,255,0)) / 255
+            else:
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img, color=(0,0,255)) / 255
 
     # images.append(gt_img * 255)
-    images = [gt_img * 255]
-    images.append(res_img * 255)
+    images = [cv2.imread(f"/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+    images.append(gt_img * 255)
+
+    # no matching prediction and therefore empty saliency maps
+    if len(target_indices_pred) == 0:
+        images.append(res_img) # original image
+    else:
+        images.append(res_img * 255)
+
+    images.append(all_mask_img * 255)
     final_image = concat_images(images)
     img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
     output_path = f'{args.output_dir}/{img_name}'
@@ -574,7 +644,10 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     torch.cuda.empty_cache()
 
     # # AI Saliency Map Computation
-    masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
+    if len(target_indices_pred) == 0:
+        masks_ndarray = np.zeros(masks[0].squeeze().detach().cpu().numpy().shape)
+    else: 
+        masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
     # preds_deletion, preds_insertation, _ = compute_faith(model, img, masks_ndarray, label_data_corr_xywh, cfg)
     #
     scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
@@ -666,7 +739,9 @@ if __name__ == '__main__':
     checkpointer.load(cfg.MODEL.WEIGHTS)
 
     for i, (target_layer_group_name,target_layer_group) in enumerate(target_layer_group_dict.items()):
-        if target_layer_group_name in ['F1','F2','F3','F4','F5','F6','F7']: continue
+        # if target_layer_group_name in ['F1','F2','F3','F4']: continue
+        # if target_layer_group_name in ['F1','F2','F3','F4','F5','F6','F7','F8']: continue
+        # if target_layer_group_name not in ['F14']: continue
         
         sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
         args.output_dir = os.path.join(output_main_dir, sub_dir_name)
@@ -679,14 +754,19 @@ if __name__ == '__main__':
             # img_list.reverse()
             # label_list.reverse()
             for item_img in img_list:
-                # if 'apple_562' not in item_img: continue
+                # if 'giraffe_287' not in item_img: continue
+
+                if os.path.exists(os.path.join(args.output_dir, split_extension(item_img,suffix='-res'))):
+                    continue
+
                 item_label = item_img[:-4]+'.txt'
                 arguments = get_parser(os.path.join(args.img_path, item_img), device).parse_args()
                 main(arguments, os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), target_layer_group, model, cfg, item_img[:-4])
 
                 # del model, saliency_method
-                gc.collect()
-                torch.cuda.empty_cache()
+                with torch.no_grad():
+                    gc.collect()
+                    torch.cuda.empty_cache()
                 gpu_usage()
 
         else:

@@ -196,6 +196,29 @@ def saveRawGradAct_operation(activations, gradients):
 
     return saliency_map, [np_gradients, np_activations]
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from PIL import Image
+import numpy as np
+def draw_multiple_rectangles_on_image(img_np, rectangles):
+    
+    # Create a matplotlib figure and axis
+    fig, ax = plt.subplots()
+    
+    # Display the image
+    ax.imshow(img_np)
+    
+    # Loop over all rectangle coordinates in the list
+    for (x1, y1, x2, y2) in rectangles:
+        # Create a rectangle patch with the given coordinates
+        rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, edgecolor='r', facecolor='none')
+        
+        # Add the rectangle to the Axes
+        ax.add_patch(rect)
+    
+    # Display everything
+    plt.savefig('view.png')
+
 
 
 
