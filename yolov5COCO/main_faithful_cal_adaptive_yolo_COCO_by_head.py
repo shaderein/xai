@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import os,re
 import time
 import argparse
@@ -34,41 +37,37 @@ import torch.utils.data
 from utils.datasets import *
 from utils.utils import *
 
+from collections import defaultdict
+
 import logging
 
 import pandas as pd
 
 # Hyperparameter Settings
 target_layer_group_dict = {
-    "F1" : ['model_23_cv3_act', 'model_23_cv3_act', 'model_23_cv3_act'], #C3
-    "F2" : ['model_21_act', 'model_21_act', 'model_21_act'], #CONV
-    "F3" : ['model_20_cv3_act', 'model_20_cv3_act', 'model_20_cv3_act'],
-    "F4" : ['model_18_act', 'model_18_act', 'model_18_act'],   
-
-	# Neck
-    "F5" : ['model_17_cv3_act', 'model_17_cv3_act', 'model_17_cv3_act'],
-    "F6" : ['model_14_act', 'model_14_act', 'model_14_act'],
-    "F7" : ['model_13_cv3_act', 'model_13_cv3_act', 'model_13_cv3_act'],
-    "F8" : ['model_10_act', 'model_10_act', 'model_10_act'],
-
-    # SPPF
+    "F1" : ['model_1_act', 'model_1_act', 'model_1_act'],
+    "F2" : ['model_2_cv3_act', 'model_2_cv3_act', 'model_2_cv3_act'],
+    "F3" : ['model_3_act', 'model_3_act', 'model_3_act'],
+    "F4" : ['model_4_cv3_act', 'model_4_cv3_act', 'model_4_cv3_act'],
+    "F5" : ['model_5_act', 'model_5_act', 'model_5_act'],
+    "F6" : ['model_6_cv3_act', 'model_6_cv3_act', 'model_6_cv3_act'],
+    "F7" : ['model_7_act', 'model_7_act', 'model_7_act'],
+    "F8" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
     "F9" : ['model_9_cv2_act', 'model_9_cv2_act', 'model_9_cv2_act'], 
-
-    # boundary between neck and backbone
-    "F10" : ['model_8_cv3_act', 'model_8_cv3_act', 'model_8_cv3_act'],
-    "F11" : ['model_7_act', 'model_7_act', 'model_7_act'],
-    "F12" : ['model_6_cv3_act', 'model_6_cv3_act', 'model_6_cv3_act'],
-    "F13" : ['model_5_act', 'model_5_act', 'model_5_act'],
-    "F14" : ['model_4_cv3_act', 'model_4_cv3_act', 'model_4_cv3_act'],
-    "F15" : ['model_3_act', 'model_3_act', 'model_3_act'],
-    "F16" : ['model_2_cv3_act', 'model_2_cv3_act', 'model_2_cv3_act'],
-    "F17" : ['model_1_act', 'model_1_act', 'model_1_act']
+    "F10" : ['model_10_act', 'model_10_act', 'model_10_act'],
+    "F11" : ['model_13_cv3_act', 'model_13_cv3_act', 'model_13_cv3_act'],
+    "F12" : ['model_14_act', 'model_14_act', 'model_14_act'],
+    "F13" : ['model_17_cv3_act', 'model_17_cv3_act', 'model_17_cv3_act'],
+    "F14" : ['model_18_act', 'model_18_act', 'model_18_act'],   
+    "F15" : ['model_20_cv3_act', 'model_20_cv3_act', 'model_20_cv3_act'],
+    "F16" : ['model_21_act', 'model_21_act', 'model_21_act'], #CONV
+    "F17" : ['model_23_cv3_act', 'model_23_cv3_act', 'model_23_cv3_act'], #C3
 
 }
 
 skipped_levels = {
-    0 : ['F1','F2','F3','F4'],
-    1 : ['F1','F2'],
+    0 : ['F14','F15','F16','F17'],
+    1 : ['F16','F17'],
     2 : []
 }
 
@@ -81,7 +80,7 @@ output_main_dir = 'multi_layer_analysis/odam_test_results'
 sel_nms = 'NMS'     # non maximum suppression
 # sel_prob = 'class'  # obj, class, objclass
 sel_norm = 'norm'
-sel_faith = 'aifaith'     # nofaith, aifaith, humanfaith, aihumanfaith, trainedXAIfaith
+sel_faith = 'nofaith'     # nofaith, aifaith, humanfaith, aihumanfaith, trainedXAIfaith
 
 
 # Arguments
@@ -191,36 +190,42 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel,
     tic = time.time()
 
     masks_all, masks_sum, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img)
-    print("total time:", round(time.time() - tic, 4))
-    result = torch_img.squeeze(0).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).detach().cpu().numpy()
-    result = result[..., ::-1]  # convert to bgr
-    images = [result]
 
     # Excluded mask if it's from a layer skipped by its proposing head
     if len(head_num_list) > 0:
         masks_sum_included = []
         included_count = 0
         for m, head in zip(masks_all, head_num_list):
-            if target_layer_group_name not in skipped_levels[head[0]]:
+            if target_layer_group_name not in skipped_levels[head]:
                 masks_sum_included.append(m)
                 included_count += 1
         if included_count > 0:
-            masks_sum = torch.cat(masks_sum_included).mean(axis=0).unsqueeze(dim=0)
+            masks_sum = torch.stack(masks_sum_included).mean(axis=0,keepdim=True)
         else: # layer excluded, masks_sum should automatically be 0?
             return
+    else:
+        return # skip images with no detection (excluded when doing similarity analysis)
+
+    print("total time:", round(time.time() - tic, 4))
+    result = torch_img.squeeze(0).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).detach().cpu().numpy()
+    result = result[..., ::-1]  # convert to bgr
+    images = [result]
+
 
     ### New Images
     result_raw = result
     images = [img]
     result = img
-    masks = [masks_sum]
-    masks[0] = F.upsample(masks[0], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-    masks[0] = masks[0]
-    
-    # if masks[0].max().item() == 0:
-    #     logging.info(f"{img_path} has empty saliency maps at {args.target_layer}")
-    #     return
 
+    # Sum targets from the same head
+    masks_by_head = defaultdict(None)
+    for head_num in range(3):
+        if head_num in head_num_list:
+            masks_by_head[head_num] = masks_all[head_num_list == head_num].mean(axis=0,keepdim=True)
+            masks_by_head[head_num] = F.upsample(masks_by_head[head_num], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+
+    masks_all = F.upsample(masks_all, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+    masks_sum = F.upsample(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
 
     ### Rescale Boxes
     shape_raw = [np.size(result_raw, 1), np.size(result_raw, 0)]  # w, h
@@ -237,15 +242,47 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel,
     else:
         Vacc = 0
 
+    # Label the pred BB matching the target in EXP
+    # Find best matching target BB's index from pred (y1,x1,y2,x2)
+    # For MSCOCO: Chenyang provided both GT target index and coordinates x1,y1,x2,y2
+    if save_pred_box_info:
+        target_bbox_GT = [bb_selection[['y1']].y1.item()*img.shape[0],
+                            bb_selection[['x1']].x1.item()*img.shape[1],
+                            bb_selection[['y2']].y2.item()*img.shape[0],
+                            bb_selection[['x2']].x2.item()*img.shape[1]]
+        overlaps = np.zeros(len(boxes))
+        is_exp_target = [False for i in range(len(boxes))]
+        for i in range(len(boxes)):
+            overlaps[i] = area(boxes[i][0],target_bbox_GT,threshold=0.1)
+            # overlaps[i] = ut.bbox_iou(boxes[i][0],target_bbox_GT)
+            # if overlaps[i] < 0.1: overlaps[i] = 0
+        if len(overlaps) > 0 and overlaps.max() > 0:
+            is_exp_target[np.argmax(overlaps)] = True
+
+        # Save pred box infos
+        data = np.column_stack(([img_path.split('/')[-1].replace('.jpg','') for i in range(len(boxes))],
+                                [int(x1) for x1 in boxes_rescale_xyxy[:, 0]],
+                                [int(y1) for y1 in boxes_rescale_xyxy[:, 1]],
+                                [int(x2) for x2 in boxes_rescale_xyxy[:, 2]],
+                                [int(y2) for y2 in boxes_rescale_xyxy[:, 3]],
+                                head_num_list,
+                                is_exp_target,
+                                ))
+        df = pd.DataFrame(data, columns=['img','x1','y1','x2','y2','head_num','is_exp_target'])
+        df.reset_index(inplace=True)
+        df.to_csv(pred_box_info_path, mode='a',header=False,index=False)
+
     ### Display
-    for i, mask in enumerate(masks):
-        res_img = result.copy()
-        res_img, heat_map = ut.get_res_img(mask, res_img)
+    res_imgs_by_head = defaultdict(None)
+    for head_num in range(3):
+        res_imgs_by_head[head_num] = result.copy()
+        if head_num in head_num_list:
+            res_imgs_by_head[head_num], heat_map = ut.get_res_img(masks_by_head[head_num], res_imgs_by_head[head_num])
     for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
         if cls_name[0] in class_names_sel:
             #bbox, cls_name = boxes[0][i], class_names[0][i]
             # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-            res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob.cpu().detach().numpy()[0]*100)[:2] + ", " + str(head_num[0])[:1], res_img) / 255
+            res_imgs_by_head[head_num] = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], res_imgs_by_head[head_num]) / 255
 
     ## Display Ground Truth
     gt_img = result.copy()
@@ -259,7 +296,8 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel,
 
     # images.append(gt_img * 255)
     images = [gt_img * 255]
-    images.append(res_img * 255)
+    for res_img in res_imgs_by_head.values():
+        images.append(res_img * 255)
     final_image = ut.concat_images(images)
     img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
     output_path = f'{args.output_dir}/{img_name}'
@@ -270,13 +308,19 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel,
     gc.collect()
     torch.cuda.empty_cache()
 
-    masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
+    for head_num in range(3):
+        if head_num in masks_by_head:
+            masks_by_head[head_num] = masks_by_head[head_num].squeeze(0).squeeze(0).numpy()
+        else:
+            masks_by_head[head_num] = np.empty(0)
 
     # nofaith, aifaith, humanfaith, aihumanfaith
     if sel_faith == 'nofaith':
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_sum': masks_ndarray, # Whole-image saliency maps (all target summed)
-                                                      'masks_all': masks_ndarray, # Separate saliency maps for each target
-                                                      'masks_by_head': masks_by_head, # Saliency maps suming all targets from the same head
+        scipy.io.savemat(output_path + '.mat', mdict={'masks_sum': masks_sum.squeeze(0).squeeze(0).numpy(), # Whole-image saliency maps (all target summed)
+                                                      'masks_all': masks_all.squeeze(1).numpy(), # Separate saliency maps for each target
+                                                      'masks_head_0': masks_by_head[0], # Saliency maps suming all targets from the same head
+                                                      'masks_head_1': masks_by_head[1],
+                                                      'masks_head_2': masks_by_head[2],
                                                       'head_num_list':head_num_list,
                                                       'boxes_pred_xyxy': boxes_rescale_xyxy,
                                                       'boxes_pred_xywh': boxes_rescale_xywh,
@@ -289,95 +333,6 @@ def main(img_path, label_path, model, saliency_method, img_num, class_names_sel,
                                                       'boxes_gt_classes_names': label_data_class_names,
                                                       'grad_act': raw_data
                                                       })
-    elif sel_faith == 'aifaith':
-        # AI Saliency Map Computation
-        preds_deletion, preds_insertation, _ = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel)
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                      'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                      'boxes_pred_xywh': boxes_rescale_xywh,
-                                                      'boxes_gt_xywh': label_data_corr_xywh,
-                                                      'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                      'HitRate': Vacc,
-                                                      'preds_deletion': preds_deletion,
-                                                      'preds_insertation': preds_insertation,
-                                                      'boxes_pred_conf': obj_prob,
-                                                      'boxes_pred_class_names': class_names,
-                                                      'class_names_sel': class_names_sel,
-                                                      'boxes_gt_classes_names': label_data_class_names,
-                                                      'grad_act': raw_data
-                                                      })
-    elif sel_faith == 'humanfaith':
-        # Human Saliency Map Loading
-        human_saliency_map_path = '/mnt/D/HKU_XAI_Project/XAI_Human_compare_results_1/human_saliency_map_veh_new_1/' + img_num + '_GSmo_30.mat'
-        human_saliency_map = scipy.io.loadmat(human_saliency_map_path)['output_map_norm']
-        human_deletion, human_insertation, _ = ut.compute_faith(model, img, human_saliency_map, label_data_corr_xywh, class_names_sel)
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                      'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                      'boxes_pred_xywh': boxes_rescale_xywh,
-                                                      'boxes_gt_xywh': label_data_corr_xywh,
-                                                      'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                      'HitRate': Vacc,
-                                                      'human_deletion': human_deletion,
-                                                      'human_insertation': human_insertation,
-                                                      'boxes_pred_conf': obj_prob,
-                                                      'boxes_pred_class_names': class_names,
-                                                      'class_names_sel': class_names_sel,
-                                                      'boxes_gt_classes_names': label_data_class_names,
-                                                      'grad_act': raw_data
-                                                      })
-    elif sel_faith == 'aihumanfaith':
-        # AI Saliency Map Computation
-        if args.object == 'COCO':
-            preds_deletion, preds_insertation, _ = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel)
-        else:
-            preds_deletion, preds_insertation, _ = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh)
-        # Human Saliency Map Loading
-        human_saliency_map_path = '/mnt/c/D/HKU_XAI_Project/XAI_Human_compare_results_1/human_saliency_map_1/' + img_num + '_GSmo_30.mat'
-        human_saliency_map = scipy.io.loadmat(human_saliency_map_path)['output_map_norm']
-        human_deletion, human_insertation, _ = ut.compute_faith(model, img, human_saliency_map, label_data_corr_xywh, class_names_sel)
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                      'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                      'boxes_pred_xywh': boxes_rescale_xywh,
-                                                      'boxes_gt_xywh': label_data_corr_xywh,
-                                                      'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                      'HitRate': Vacc,
-                                                      'preds_deletion': preds_deletion,
-                                                      'preds_insertation': preds_insertation,
-                                                      'human_deletion': human_deletion,
-                                                      'human_insertation': human_insertation,
-                                                      'boxes_pred_conf': obj_prob,
-                                                      'boxes_pred_class_names': class_names,
-                                                      'class_names_sel': class_names_sel,
-                                                      'boxes_gt_classes_names': label_data_class_names,
-                                                      'grad_act': raw_data
-                                                      })
-    elif sel_faith == 'trainedXAIfaith':
-        # Human Saliency Map Loading
-        # trainedXAI_saliency_map_path = 'E:/HKU/HKU_XAI_Project/Human_Inspired_XAI_Try2/saveRawSaliencyMapData_testSet_GaussianConv/' + img_num + '_trainedSaliencyMap.mat'
-        # trainedXAI_saliency_map_path = 'E:/HKU/HKU_XAI_Project/Human_Inspired_XAI_Try2/saveRawSaliencyMapData_testSet_GaussianConv_F10/' + img_num + '_trainedSaliencyMap.mat'
-        trainedXAI_saliency_map_path = '/mnt/h/Projects/HKU_XAI_Project/Human_Inspired_XAI_Try2/saveRawSaliencyMapData_testSet_GaussianConv_correct/' + img_num + '_trainedSaliencyMap.mat'
-
-        trainedXAI_saliency_map = scipy.io.loadmat(trainedXAI_saliency_map_path)['PredData_raw']
-        trainedXAI_deletion, trainedXAI_insertation, _ = ut.compute_faith(model, img, trainedXAI_saliency_map, label_data_corr_xywh, class_names_sel)
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                      'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                      'boxes_pred_xywh': boxes_rescale_xywh,
-                                                      'boxes_gt_xywh': label_data_corr_xywh,
-                                                      'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                      'HitRate': Vacc,
-                                                      'trainedXAI_deletion': trainedXAI_deletion,
-                                                      'trainedXAI_insertation': trainedXAI_insertation,
-                                                      'boxes_pred_conf': obj_prob,
-                                                      'boxes_pred_class_names': class_names,
-                                                      'class_names_sel': class_names_sel,
-                                                      'boxes_gt_classes_names': label_data_class_names,
-                                                      'grad_act': raw_data
-                                                      })
-
     print(f'[INFO] save mat to: {output_path}')
 
 if __name__ == '__main__':
@@ -392,8 +347,15 @@ if __name__ == '__main__':
                                       names=None if args.names is None else args.names.strip().split(","))
 
     for i, (target_layer_group_name, target_layer_group) in enumerate(target_layer_group_dict.items()):
-        # if target_layer_group_name not in ["F1","F2","F3","F4","F5","F6","F7","F8"]: continue
-        if target_layer_group_name not in ["F1"]: continue
+        # only need to save pred info when running one layer
+        pred_box_info_path = os.path.join(args.output_main_dir,f"yolov5s_{args.object}_pred_info_by_head.csv")
+        save_pred_box_info = False
+        if not os.path.isfile(pred_box_info_path): 
+            save_pred_box_info = True
+            headers = ['pred_idx','img','x1','y1','x2','y2','head_num','is_exp_target']
+            empty_df = pd.DataFrame(columns=headers)
+            empty_df.to_csv(pred_box_info_path, index=False)
+        
         sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + sel_norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
         args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
         args.target_layer = target_layer_group
@@ -407,6 +369,8 @@ if __name__ == '__main__':
             label_list = os.listdir(args.label_path)
             # print(img_list)
             for item_img, item_label in zip(img_list, label_list):
+
+                # if 'apple_562059' not in item_img: continue
                 
                 if os.path.exists(os.path.join(args.output_dir, split_extension(item_img,suffix='-res'))):
                     continue
