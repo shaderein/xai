@@ -374,7 +374,11 @@ class YOLOV5XAI:
         for i in range(len(raw_data_rec)):
             FrameStack[i] = raw_data_rec[i]
 
-        return saliency_maps, saliency_map_sum, pred_list, class_prob_list, head_num_list, FrameStack
+        if len(head_num_list) > 0:
+            head_num_list = np.squeeze(head_num_list,1).astype(int)
+            class_prob_list = torch.cat(class_prob_list).cpu().detach().numpy()
+
+        return torch.cat(saliency_maps), saliency_map_sum, pred_list, class_prob_list, head_num_list, FrameStack
 
     def __call__(self, input_img):
 

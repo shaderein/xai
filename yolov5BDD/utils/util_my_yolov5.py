@@ -13,6 +13,36 @@ from scipy import ndimage
 # from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage import gaussian_filter
 
+def bbox_iou(bbox1, bbox2):
+    """
+    计算两个边界框的交并比 (IoU) 值
+
+    :param bbox1: 列表，包含四个 int 元素，代表 yxyx 格式的四个坐标
+    :param bbox2: 列表，包含四个 int 元素，代表 yxyx 格式的四个坐标
+    :return: float, 两个边界框的 IoU 值
+    """
+    # 计算交集区域的坐标
+    x0 = max(bbox1[1], bbox2[1])
+    y0 = max(bbox1[0], bbox2[0])
+    x1 = min(bbox1[3], bbox2[3])
+    y1 = min(bbox1[2], bbox2[2])
+
+    # 计算交集区域的面积
+    intersection_area = max(0, x1 - x0 + 1) * max(0, y1 - y0 + 1)
+
+    # 计算两个边界框的面积
+    bbox1_area = (bbox1[3] - bbox1[1] + 1) * (bbox1[2] - bbox1[0] + 1)
+    bbox2_area = (bbox2[3] - bbox2[1] + 1) * (bbox2[2] - bbox2[0] + 1)
+
+    # 计算并集区域的面积
+    union_area = bbox1_area + bbox2_area - intersection_area
+
+    # 计算交并比 (IoU)
+    iou = intersection_area / union_area
+
+    return iou
+
+
 def clip_coords(boxes, img_shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
     boxes[:, 0].clamp_(0, img_shape[1])  # x1
