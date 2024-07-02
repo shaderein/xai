@@ -32,32 +32,70 @@ import gc
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
-import math
+import math, time
 
 # constants
 WINDOW_NAME = "COCO detections"
 
 # Hyperparameter Settings
 target_layer_group_dict = {
-    "F1" : 'backbone.res2.0.conv3',
-    "F2" : 'backbone.res2.1.conv3',
-    "F3" : 'backbone.res2.2.conv3',
-    "F4" : 'backbone.res3.0.conv3',
-    "F5" : 'backbone.res3.1.conv3',
-    "F6" : 'backbone.res3.2.conv3', 
-    "F7" : 'backbone.res3.3.conv3', 
-    "F8" : 'backbone.res4.0.conv3', 
-    "F9" : 'backbone.res4.1.conv3', 
-    "F10" : 'backbone.res4.2.conv3', 
-    "F11" : 'backbone.res4.3.conv3', 
-    "F12" : 'backbone.res4.4.conv3', 
-    "F13" : 'backbone.res4.5.conv3',
+    'roi_heads.pooler.level_poolers.0' : 'roi_heads.pooler.level_poolers.0',
+    'backbone.res2.0.conv3' : 'backbone.res2.0.conv3',
+    'backbone.res2.1.conv3' : 'backbone.res2.1.conv3',
+    'backbone.res2.2.conv3' : 'backbone.res2.2.conv3',
+    'backbone.res3.0.conv3' : 'backbone.res3.0.conv3',
+    'backbone.res3.1.conv3' : 'backbone.res3.1.conv3',
+    'backbone.res3.2.conv3' : 'backbone.res3.2.conv3', 
+    'backbone.res3.3.conv3' : 'backbone.res3.3.conv3', 
+    'backbone.res4.0.conv3' : 'backbone.res4.0.conv3', 
+    'backbone.res4.1.conv3' : 'backbone.res4.1.conv3', 
+    'backbone.res4.2.conv3' : 'backbone.res4.2.conv3', 
+    'backbone.res4.3.conv3' : 'backbone.res4.3.conv3', 
+    'backbone.res4.4.conv3' : 'backbone.res4.4.conv3', 
+    'backbone.res4.5.conv3' : 'backbone.res4.5.conv3',
 
-    #ROI
-    "F14" : 'roi_heads.pooler.level_poolers.0',
-    'F15' : 'roi_heads.res5.0.conv3',
-    'F16' : 'roi_heads.res5.1.conv3',
-    'F17' : 'roi_heads.res5.2.conv3'}
+    'proposal_generator.rpn_head.conv.activation':'proposal_generator.rpn_head.conv.activation',
+
+    'proposal_generator.rpn_head.conv':'proposal_generator.rpn_head.conv',
+
+    'roi_heads.res5.0.conv3' : 'roi_heads.res5.0.conv3',
+    'roi_heads.res5.1.conv3' : 'roi_heads.res5.1.conv3',
+    'roi_heads.res5.2.conv3' : 'roi_heads.res5.2.conv3',
+    
+    'backbone.res2.0.conv2':'backbone.res2.0.conv2',
+    'backbone.res2.1.conv2':'backbone.res2.1.conv2',
+    'backbone.res2.2.conv2':'backbone.res2.2.conv2',
+    'backbone.res3.0.conv2':'backbone.res3.0.conv2',
+    'backbone.res3.1.conv2':'backbone.res3.1.conv2',
+    'backbone.res3.2.conv2':'backbone.res3.2.conv2', 
+    'backbone.res3.3.conv2':'backbone.res3.3.conv2', 
+    'backbone.res4.0.conv2':'backbone.res4.0.conv2', 
+    'backbone.res4.1.conv2':'backbone.res4.1.conv2', 
+    'backbone.res4.2.conv2':'backbone.res4.2.conv2', 
+    'backbone.res4.3.conv2':'backbone.res4.3.conv2', 
+    'backbone.res4.4.conv2':'backbone.res4.4.conv2', 
+    'backbone.res4.5.conv2':'backbone.res4.5.conv2',
+    'roi_heads.res5.0.conv2':'roi_heads.res5.0.conv2',
+    'roi_heads.res5.1.conv2':'roi_heads.res5.1.conv2',
+    'roi_heads.res5.2.conv2':'roi_heads.res5.2.conv2',
+
+    'backbone.res2.0.conv1':'backbone.res2.0.conv1',
+    'backbone.res2.1.conv1':'backbone.res2.1.conv1',
+    'backbone.res2.2.conv1':'backbone.res2.2.conv1',
+    'backbone.res3.0.conv1':'backbone.res3.0.conv1',
+    'backbone.res3.1.conv1':'backbone.res3.1.conv1',
+    'backbone.res3.2.conv1':'backbone.res3.2.conv1',
+    'backbone.res3.3.conv1':'backbone.res3.3.conv1',
+    'backbone.res4.0.conv1':'backbone.res4.0.conv1',
+    'backbone.res4.1.conv1':'backbone.res4.1.conv1',
+    'backbone.res4.2.conv1':'backbone.res4.2.conv1',
+    'backbone.res4.3.conv1':'backbone.res4.3.conv1',
+    'backbone.res4.4.conv1':'backbone.res4.4.conv1',
+    'backbone.res4.5.conv1':'backbone.res4.5.conv1',
+    'roi_heads.res5.0.conv1':'roi_heads.res5.0.conv1',
+    'roi_heads.res5.1.conv1':'roi_heads.res5.1.conv1',
+    'roi_heads.res5.2.conv1':'roi_heads.res5.2.conv1',
+    }
 
 
 
@@ -204,7 +242,7 @@ def get_parser(img_path, run_device):
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin models")
     parser.add_argument(
         "--config-file",
-        default="/mnt/h/jinhan/xai/fasterRCNNBDD/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        default="/mnt/h/jinhan/xai/fasterRCNN/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -694,7 +732,7 @@ if __name__ == '__main__':
     sel_model = "/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth"
     sel_model_str = sel_model.split('/')[-1][:-3].replace('.','')
 
-    for category in ["human"]:
+    for category in ["vehicle","human"]:
         if category == "vehicle":
             class_names_sel = ['car', 'bus', 'truck']
             input_main_dir = "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/orib_veh_id_task0922"
@@ -733,17 +771,31 @@ if __name__ == '__main__':
                 # img_list.reverse()
                 # label_list.reverse()
                 for item_img in img_list:
-                    if os.path.exists(os.path.join(args.output_dir, split_extension(item_img,suffix='-res'))):
+                    if os.path.exists(os.path.join(args.output_dir, split_extension(item_img,suffix='-res'))) and\
+                         os.path.exists(os.path.join(args.output_dir, f"{split_extension(item_img,suffix='-res')}.mat")):
                         continue
                     item_label = item_img[:-4]+'.txt'
                     arguments = get_parser(os.path.join(input_main_dir, item_img), device).parse_args()
-                    main(arguments, os.path.join(input_main_dir, item_img), os.path.join(input_main_dir_label, item_label), target_layer_group, model, cfg, item_img[:-4],
-                         class_names_gt, class_names_sel,category)
 
-                    # del model, saliency_method
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    gpu_usage()
+                    for TRY in range(3):
+                        try:
+                            main(arguments, os.path.join(input_main_dir, item_img), os.path.join(input_main_dir_label, item_label), target_layer_group, model, cfg, item_img[:-4],
+                                class_names_gt, class_names_sel,category)
+
+                            # del model, saliency_method
+                            gc.collect()
+                            torch.cuda.empty_cache()
+                            gpu_usage()
+                            break
+                        except:
+                            del model
+                            gc.collect()
+                            torch.cuda.empty_cache()
+                            gpu_usage()
+                            time.sleep(5)
+                            model = build_model(cfg)
+                            continue
+
 
             else:
                 main(input_main_dir)

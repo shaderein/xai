@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import utils_previous as ut
-import math
+import math,gc
 
 def roi_map_to_original_image(pool_dams, rois, original_size):
     """
@@ -280,6 +280,8 @@ class GradCAM:
                 elif self.sel_XAImethod == 'odam':
                     saliency_map = F.relu((gradients * activations).sum(1, keepdim=True))#.sum(0, keepdim=True))
 
+                # print(saliency_map[0].size())
+
                 # For ROI pooling layer's saliency map, combine all proposals 
                 #   and map to correspondinglocation of the image
                 if saliency_map.size()[0] != 1: # more than 1 maps due to different proposals
@@ -325,9 +327,15 @@ class GradCAM:
         # else:
         #     print('No Score')
 
+        gc.collect()
+        torch.cuda.empty_cache()
+
         FrameStack = np.empty((len(raw_data_rec),), dtype=np.object)
         for i in range(len(raw_data_rec)):
             FrameStack[i] = raw_data_rec[i]
+
+        if len(head_num_list) > 0:
+            class_prob_list = torch.cat(class_prob_list).cpu().detach().numpy()
 
         return saliency_maps, saliency_map_sum, pred_list, class_prob_list, FrameStack
 
