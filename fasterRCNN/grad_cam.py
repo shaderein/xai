@@ -7,10 +7,11 @@
 """
 import cv2
 import numpy as np
-import torch
+import torch, math
 import torch.nn.functional as F
 import utils_previous as ut
 import math,gc
+from collections import defaultdict
 
 def roi_map_to_original_image(pool_dams, rois, original_size):
     """
@@ -106,13 +107,195 @@ def bbox_iou(bbox1, bbox2):
 
     return iou
 
+def calculate_receptive_field(layer_name, layers):
+    """
+    Calculate the receptive field, stride, and padding for a specific layer in a CNN.
+    Args:
+    - layer_name (str): Index of the layer.
+    - layers (list): List of layer properties (kernel size, stride, padding).
+
+    Returns:
+    - receptive_field (int): Size of the receptive field.
+    - stride (int): Stride of the receptive field.
+    - padding (int): Padding of the receptive field.
+    """
+    receptive_field = 1
+    stride = 1
+    padding = 0
+
+    for layer in layers:
+        kernel_size, layer_stride, layer_padding = layers[layer]
+        receptive_field = receptive_field + (kernel_size - 1) * stride
+        stride = stride * layer_stride
+        padding = padding + layer_padding
+        if layer == layer_name: break
+
+    return receptive_field, stride, padding
+
+def map_saliency_to_original_image(saliency_map, original_size, preprocessed_size, receptive_field, stride, padding):
+    """
+    Map saliency map locations to the centers of their receptive fields on the original image.
+    Args:
+    - saliency_map (ndarray): The saliency map.
+    - original_size (tuple): The size of the original image.
+    - preprocessed_size (tuple): The size of the preprocessed image.
+    - receptive_field (int): Size of the receptive field.
+    - stride (int): Stride of the receptive field.
+    - padding (int): Padding of the receptive field.
+
+    Returns:
+    - mapped_locs (ndarray): Mapped locations on the original image.
+    """
+    saliency_height, saliency_width = saliency_map.shape[2],saliency_map.shape[3]
+    original_height, original_width = original_size
+    preprocessed_height, preprocessed_width = preprocessed_size
+
+    height_ratio = original_height / preprocessed_height
+    width_ratio = original_width / preprocessed_width
+
+    # Create a grid of indices
+    x_indices, y_indices = np.meshgrid(np.arange(saliency_width), np.arange(saliency_height))
+
+    # Calculate the center positions in the preprocessed image
+    center_x = x_indices * stride - padding + receptive_field // 2
+    center_y = y_indices * stride - padding + receptive_field // 2
+
+    # Map to original image coordinates
+    mapped_center_x = (center_x * width_ratio).astype(int)
+    mapped_center_y = (center_y * height_ratio).astype(int)
+
+    # Stack the mapped coordinates into the output array
+    mapped_locs = np.stack((mapped_center_x, mapped_center_y), axis=-1)
+
+    # mapped_locs = np.zeros((saliency_height, saliency_width, 2))
+
+    # for i in range(saliency_height):
+    #     for j in range(saliency_width):
+    #         center_x = j * stride - padding + receptive_field // 2
+    #         center_y = i * stride - padding + receptive_field // 2
+
+    #         # Map to original image coordinates
+    #         center_x = int(center_x * width_ratio)
+    #         center_y = int(center_y * height_ratio)
+
+    #         mapped_locs[i, j, 0] = center_x
+    #         mapped_locs[i, j, 1] = center_y
+
+    return mapped_locs
+
+# def apply_gaussian_kernel(image, img_size, mapped_locs, sigma, kernel_size_factor=2):
+#     """
+#     Apply Gaussian kernel to the mapped locations on the original image.
+#     Args:
+#     - image (ndarray): The original image.
+#     - mapped_locs (ndarray): Mapped locations on the original image.
+#     - sigma (float): Standard deviation of the Gaussian kernel.
+
+#     Returns:
+#     - output (ndarray): Image with applied Gaussian kernel.
+#     """
+#     output = np.zeros_like(image.cpu().detach().numpy(),dtype=np.float32)
+#     height, width = image.shape[2:]
+#     kernel_size = math.ceil(sigma * kernel_size_factor)
+#     if kernel_size % 2 == 0: kernel_size += 1
+
+#     for loc in mapped_locs.reshape(-1, 2):
+#         x, y = int(loc[0]), int(loc[1])
+#         if 0 <= x < width and 0 <= y < height:
+#             gaussian = cv2.getGaussianKernel(ksize=kernel_size, sigma=sigma)
+#             gaussian = gaussian * gaussian.T  # Create 2D Gaussian kernel
+#             h, w = gaussian.shape
+#             start_x = max(x - w // 2, 0)
+#             end_x = min(x + w // 2 + 1, width)
+#             start_y = max(y - h // 2, 0)
+#             end_y = min(y + h // 2 + 1, height)
+#             output[0,0, start_y:end_y, start_x:end_x] += gaussian[:end_y-start_y, :end_x-start_x] # TODO
+
+#     return torch.tensor(output)
+
+def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_size, sigma_factor=2):
+    """
+    Apply Gaussian kernel to the saliency map locations and upsample to the original image size.
+    Args:
+    - saliency_map (ndarray): The saliency map.
+    - mapped_locs (ndarray): Mapped locations on the original image.
+    - receptive_field (int): Size of the receptive field.
+    - original_size (tuple): The size of the original image.
+
+    Returns:
+    - output (ndarray): Saliency map upsampled to the original image size.
+    """
+    original_height, original_width = original_size
+    output = np.zeros((1,1,original_height, original_width), dtype=np.float32) #TODO
+
+    saliency_map = saliency_map.cpu().detach().numpy()
+
+    saliency_height, saliency_width = saliency_map.shape[2:]
+    sigma = receptive_field / sigma_factor
+
+    kernel_size = math.ceil(sigma * 6)
+    if kernel_size % 2 == 0: kernel_size += 1 # kernel size should be odd
+
+    gaussian = cv2.getGaussianKernel(ksize=kernel_size, sigma=sigma)
+    gaussian = gaussian * gaussian.T  # Create 2D Gaussian kernel
+    h, w = gaussian.shape
+
+    center_x = mapped_locs[:, :, 0].astype(int)
+    center_y = mapped_locs[:, :, 1].astype(int)
+
+    start_x = np.maximum(center_x - w // 2, 0)
+    end_x = np.minimum(center_x + w // 2 + 1, original_width)
+    start_y = np.maximum(center_y - h // 2, 0)
+    end_y = np.minimum(center_y + h // 2 + 1, original_height)
+
+    for i in range(saliency_height):
+        for j in range(saliency_width):
+            cx, cy = center_x[i, j], center_y[i, j]
+            if 0 <= cx < original_width and 0 <= cy < original_height:
+                sx, ex = start_x[i, j], end_x[i, j]
+                sy, ey = start_y[i, j], end_y[i, j]
+                output[0, 0, sy:ey, sx:ex] += saliency_map[0, 0, i, j] * gaussian[:ey - sy, :ex - sx]
+
+    # not verctorized version below
+
+    # for i in range(saliency_height):
+    #     for j in range(saliency_width):
+    #         center_x, center_y = int(mapped_locs[i, j, 0]), int(mapped_locs[i, j, 1])
+    #         if 0 <= center_x < original_width and 0 <= center_y < original_height:
+    #             gaussian = cv2.getGaussianKernel(ksize=kernel_size, sigma=sigma)
+    #             gaussian = gaussian * gaussian.T  # Create 2D Gaussian kernel
+    #             h, w = gaussian.shape
+                
+    #             # # Calculate the boundaries
+    #             # start_x = max(center_x - w // 2, 0)
+    #             # end_x = min(center_x + w // 2 + 1, original_width)
+    #             # start_y = max(center_y - h // 2, 0)
+    #             # end_y = min(center_y + h // 2 + 1, original_height)
+
+    #             # # Calculate the indices for the Gaussian kernel
+    #             # kernel_start_x = max(0, w // 2 - center_x)
+    #             # kernel_end_x = kernel_start_x + (end_x - start_x)
+    #             # kernel_start_y = max(0, h // 2 - center_y)
+    #             # kernel_end_y = kernel_start_y + (end_y - start_y)
+
+    #             # output[0,0,start_y:end_y, start_x:end_x] += saliency_map[0,0,i, j] * gaussian[kernel_start_y:kernel_end_y, kernel_start_x:kernel_end_x]
+
+    #             h, w = gaussian.shape
+    #             start_x = max(center_x - w // 2, 0)
+    #             end_x = min(center_x + w // 2 + 1, original_width)
+    #             start_y = max(center_y - h // 2, 0)
+    #             end_y = min(center_y + h // 2 + 1, original_height)
+    #             output[0,0,start_y:end_y, start_x:end_x] += saliency_map[0,0,i, j] *  gaussian[:end_y-start_y, :end_x-start_x] # TODO
+
+    return torch.tensor(output)
+
 class GradCAM:
     """
     1: 网络不更新梯度,输入需要梯度更新
     2: 使用目标类别的得分做反向传播
     """
 
-    def __init__(self, net, layer_name, class_names, sel_norm_str, sel_method):
+    def __init__(self, net, layer_name, class_names, sel_norm_str, sel_method, layers, sigma_factors=[2,4]):
         self.net = net
         self.layer_name = layer_name
         self.feature = None
@@ -124,11 +307,13 @@ class GradCAM:
         self.sel_norm_str = sel_norm_str
         self.sel_XAImethod = sel_method
         self.sel_classes = ['car', 'bus', 'truck']
+        self.layers = layers # layer info
+        self.sigma_factors = sigma_factors # initialize the gaussian kernel sigma as (receptive_field / sigma_factor)
 
 
     def _get_features_hook(self, module, input, output):
         self.feature = output    #self.feature = output
-        print("feature shape:{}".format(self.feature.size()))
+        # print("feature shape:{}".format(self.feature.size()))
 
     def _get_grads_hook(self, module, input_grad, output_grad):
         """
@@ -211,12 +396,15 @@ class GradCAM:
         :return:
         """
         output = self.net.inference([inputs])
-        saliency_maps = []
+        saliency_maps = defaultdict(list)
+        saliency_map_sum = defaultdict()
         class_prob_list = []
         head_num_list = []
         raw_data_rec = []
         nObj = 0
         c, h, w = inputs['image'].size()
+        h_orig = inputs['height']
+        w_orig = inputs['width']
         pred_list = []
         pred_list.append([])
         pred_list.append([])
@@ -280,52 +468,60 @@ class GradCAM:
                 elif self.sel_XAImethod == 'odam':
                     saliency_map = F.relu((gradients * activations).sum(1, keepdim=True))#.sum(0, keepdim=True))
 
+                nObj = nObj + 1
+
                 # print(saliency_map[0].size())
 
                 # For ROI pooling layer's saliency map, combine all proposals 
                 #   and map to correspondinglocation of the image
-                if saliency_map.size()[0] != 1: # more than 1 maps due to different proposals
+                if saliency_map.size()[0] != 1: # more than 1 maps due to different proposals #TODO
                     # with torch.no_grad():
                     proposals = self.net.inference([inputs],do_postprocess=False,output_proposals=True)[0].proposal_boxes.tensor.detach()
-                    saliency_map = roi_map_to_original_image(saliency_map, proposals, (h,w)).sum(0,keepdim=True)
+                    saliency_map = roi_map_to_original_image(saliency_map, proposals, (h_orig,w_orig)).sum(0,keepdim=True)
                 else: # Backbone layers, directly interpolate to image size
-                    saliency_map = F.interpolate(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+                    saliency_map = saliency_map # F.interpolate(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
 
-                if self.sel_norm_str == 'norm':
-                    saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
-                    saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+                saliency_map_orig = saliency_map
 
-                nObj = nObj + 1
-                if nObj == 1:
-                    saliency_map_sum = saliency_map
-                else:
-                    saliency_map_sum = saliency_map_sum + saliency_map
+                ## Rescale based on receptive field
+                receptive_field, stride, padding = calculate_receptive_field(self.layer_name, self.layers)
 
-                saliency_maps.append(saliency_map.detach().cpu())
+                # Adjust the receptive field to account for the input resizing in preprocessing
+                height_ratio = h_orig / h
+                width_ratio = w_orig / w
+                adjusted_receptive_field = receptive_field * height_ratio
 
+                # print(f"Receptive field: {receptive_field}, adjusted: {adjusted_receptive_field}")
 
-        if nObj == 0:
-            saliency_map_sum = torch.zeros([1, 1, h, w])
-            saliency_maps.append(torch.zeros([1, 1, h, w]))
-        else:
-            saliency_map_sum = saliency_map_sum / nObj
+                # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
+                #   mapped to the original image
+                mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), receptive_field, stride, padding)
 
-        # b, k, u, v = gradients.size()
-        # alpha = gradients.view(b, k, -1).mean(2)
-        # weights = alpha.view(b, k, 1, 1)
-        # saliency_map = (weights * activations).sum(1, keepdim=True)
-        # saliency_map = F.upsample(saliency_map, size=(h, w), mode='bilinear', align_corners=False)
+                for sigma_factor in self.sigma_factors:
+                    saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor)
 
-        # saliency_map_sum = F.relu(saliency_map_sum)
+                    if self.sel_norm_str == 'norm':
+                        saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+                        saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
 
-        saliency_map_sum_min, saliency_map_sum_max = saliency_map_sum.min(), saliency_map_sum.max()
-        saliency_map_sum = (saliency_map_sum - saliency_map_sum_min).div(saliency_map_sum_max - saliency_map_sum_min).data
-        saliency_map_sum = saliency_map_sum.detach().cpu()
+                    if nObj == 1:
+                        saliency_map_sum[sigma_factor] = saliency_map
+                    else:
+                        saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] + saliency_map
 
-        # if nObj > 0 and output[0]['instances'].scores.numel():
-        #     score.backward()
-        # else:
-        #     print('No Score')
+                    saliency_maps[sigma_factor].append(saliency_map.detach().cpu())
+
+        for sigma_factor in self.sigma_factors:
+
+            if nObj == 0:
+                saliency_map_sum[sigma_factor] = torch.zeros([1, 1, h_orig, w_orig])
+                saliency_maps[sigma_factor].append(torch.zeros([1, 1, h_orig, w_orig]))
+            else:
+                saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] / nObj
+
+            saliency_map_sum_min, saliency_map_sum_max = saliency_map_sum[sigma_factor].min(), saliency_map_sum[sigma_factor].max()
+            saliency_map_sum[sigma_factor] = (saliency_map_sum[sigma_factor] - saliency_map_sum_min).div(saliency_map_sum_max - saliency_map_sum_min).data
+            saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor].detach().cpu()
 
         gc.collect()
         torch.cuda.empty_cache()
