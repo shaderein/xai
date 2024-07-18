@@ -16,7 +16,7 @@ from detectron2.data import MetadataCatalog
 from detectron2.data.detection_utils import read_image
 from detectron2.modeling import build_model
 from detectron2.utils.logger import setup_logger
-from grad_cam import GradCAM        #, GradCamPlusPlus
+from grad_cam_head import GradCAM        #, GradCamPlusPlus
 from skimage import io
 from torch import nn
 from utils_previous import get_res_img, put_text_box, concat_images, calculate_acc, scale_coords_new, xyxy2xywh, xywh2xyxy
@@ -82,16 +82,16 @@ target_layer_group_dict = {
     'backbone.res4.5.conv1' : [1,1,0],
     'backbone.res4.5.conv2' : [3,1,1], 
     'backbone.res4.5.conv3' : [1,1,0],
-    # 'roi_heads.pooler.level_poolers.0' : [1,1,0],
-    # 'roi_heads.res5.0.conv1' : [1,2,0],
-    # 'roi_heads.res5.0.conv2' : [3,1,1],
+    'roi_heads.pooler.level_poolers.0' : [],
+    'roi_heads.res5.0.conv1' : [1,2,0],
+    'roi_heads.res5.0.conv2' : [3,1,1],
     'roi_heads.res5.0.conv3' : [1,1,0],
-    # 'roi_heads.res5.1.conv1' : [1,1,0],
-    # 'roi_heads.res5.1.conv2' : [3,1,1],
-    # 'roi_heads.res5.1.conv3' : [1,1,0],
-    # 'roi_heads.res5.2.conv1' : [1,1,0],
-    # 'roi_heads.res5.2.conv2' : [3,1,1],
-    # 'roi_heads.res5.2.conv3' : [1,1,0],
+    'roi_heads.res5.1.conv1' : [1,1,0],
+    'roi_heads.res5.1.conv2' : [3,1,1],
+    'roi_heads.res5.1.conv3' : [1,1,0],
+    'roi_heads.res5.2.conv1' : [1,1,0],
+    'roi_heads.res5.2.conv2' : [3,1,1],
+    'roi_heads.res5.2.conv3' : [1,1,0],
     }
 
 
@@ -714,7 +714,7 @@ if __name__ == '__main__':
     sel_norm = 'norm'
     sigma_factors = [2,4]
 
-    for category in ["mscoco","vehicle","human"]:
+    for category in ["mscoco"]:#"vehicle","human"]:
         if category == "mscoco":
                 class_names_sel = None
                 sel_model = '/mnt/h/jinhan/xai/models/model_final_721ade.pkl'
@@ -755,7 +755,8 @@ if __name__ == '__main__':
             # if target_layer_group_name not in ['F15','F16','F17']: continue
 
             if target_layer_group_name == 'stem.MaxPool' or\
-                target_layer_group_name == 'backbone.stem.conv1': continue
+                target_layer_group_name == 'backbone.stem.conv1' or\
+                'backbone' in target_layer_group_name: continue
             
             sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
             args.output_dir = os.path.join(output_main_dir, sub_dir_name)
@@ -771,11 +772,18 @@ if __name__ == '__main__':
                     # if 'chair_81061' not in item_img: continue
 
                     if category == 'mscoco':
-                        sampled_images = ['giraffe_287545.png', 'elephant_97230.png', 'chair_81061.png']
+                        sampled_images = ['elephant_97230.png'] #'chair_81061.png']#, ]# 'giraffe_287545.png']
                     elif category == 'vehicle':
-                        sampled_images = ['362.jpg', '930.jpg', '1331.jpg']
+                        sampled_images = ['362.jpg']#,'930.jpg']#,'1331.jpg']
                     elif category == 'human':
-                        sampled_images = ['601.jpg', '425.jpg', '1304.jpg']
+                        sampled_images = ['601.jpg']#, '425.jpg']#, '1304.jpg']
+
+                    # if category == 'mscoco':
+                    #     sampled_images = ['chair_81061.png', 'elephant_97230.png', 'giraffe_287545.png']
+                    # elif category == 'vehicle':
+                    #     sampled_images = ['362.jpg', '930.jpg', '1331.jpg']
+                    # elif category == 'human':
+                    #     sampled_images = ['601.jpg', '425.jpg', '1304.jpg']
 
                     if item_img not in sampled_images: continue
 
@@ -800,6 +808,8 @@ if __name__ == '__main__':
 
             else:
                 main(input_main_dir)
+
+        del model
 
     script_path = '/mnt/h/jinhan/xai/fasterRCNN/multi_layer.sh'
     with open(script_path,'r') as file:

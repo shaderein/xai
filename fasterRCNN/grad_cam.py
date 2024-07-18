@@ -115,24 +115,24 @@ def calculate_receptive_field(layer_name, layers):
     - layers (list): List of layer properties (kernel size, stride, padding).
 
     Returns:
-    - receptive_field (int): Size of the receptive field.
-    - stride (int): Stride of the receptive field.
-    - padding (int): Padding of the receptive field.
+    - receptive_field (int,int): Size of the receptive field in both dimensions
+    - jump (int,int): Jump of the receptive field. (Product of strides used)
+    - start (float,float): center coordinates of the first feature (top-left)
     """
     receptive_field = 1
-    stride = 1
-    padding = 0
+    jump = 1
+    start = 0.5
 
     for layer in layers:
         kernel_size, layer_stride, layer_padding = layers[layer]
-        receptive_field = receptive_field + (kernel_size - 1) * stride
-        stride = stride * layer_stride
-        padding = padding + layer_padding
+        receptive_field = receptive_field + (kernel_size - 1) * jump
+        start = start + ((kernel_size-1)/2 - layer_padding) * jump
+        jump = jump * layer_stride
         if layer == layer_name: break
 
-    return receptive_field, stride, padding
+    return receptive_field, jump, start
 
-def map_saliency_to_original_image(saliency_map, original_size, preprocessed_size, receptive_field, stride, padding):
+def map_saliency_to_original_image(saliency_map, original_size, preprocessed_size, receptive_field, jump, start):
     """
     Map saliency map locations to the centers of their receptive fields on the original image.
     Args:
@@ -140,8 +140,8 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
     - original_size (tuple): The size of the original image.
     - preprocessed_size (tuple): The size of the preprocessed image.
     - receptive_field (int): Size of the receptive field.
-    - stride (int): Stride of the receptive field.
-    - padding (int): Padding of the receptive field.
+    - jump (int)
+    - start (float)
 
     Returns:
     - mapped_locs (ndarray): Mapped locations on the original image.
@@ -157,8 +157,8 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
     x_indices, y_indices = np.meshgrid(np.arange(saliency_width), np.arange(saliency_height))
 
     # Calculate the center positions in the preprocessed image
-    center_x = x_indices * stride - padding + receptive_field // 2
-    center_y = y_indices * stride - padding + receptive_field // 2
+    center_x = x_indices * jump + start
+    center_y = y_indices * jump + start
 
     # Map to original image coordinates
     mapped_center_x = (center_x * width_ratio).astype(int)
@@ -484,7 +484,7 @@ class GradCAM:
                 saliency_map_orig = saliency_map
 
                 ## Rescale based on receptive field
-                receptive_field, stride, padding = calculate_receptive_field(self.layer_name, self.layers)
+                receptive_field, jump, start = calculate_receptive_field(self.layer_name, self.layers)
 
                 # Adjust the receptive field to account for the input resizing in preprocessing
                 height_ratio = h_orig / h
@@ -495,7 +495,7 @@ class GradCAM:
 
                 # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
                 #   mapped to the original image
-                mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), receptive_field, stride, padding)
+                mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), receptive_field, jump, start)
 
                 for sigma_factor in self.sigma_factors:
                     saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor)
