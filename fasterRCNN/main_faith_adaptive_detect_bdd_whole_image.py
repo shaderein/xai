@@ -734,7 +734,7 @@ if __name__ == '__main__':
                     for TRY in range(3):
                         try:
                             main(arguments, os.path.join(input_main_dir, item_img), os.path.join(input_main_dir_label, item_label), target_layer_group, model, cfg, item_img[:-4],
-                             class_names_gt, class_names_sel)
+                                class_names_gt, class_names_sel)
 
                             # del model, saliency_method
                             gc.collect()

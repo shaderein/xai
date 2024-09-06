@@ -16,11 +16,13 @@ from detectron2.data import MetadataCatalog
 from detectron2.data.detection_utils import read_image
 from detectron2.modeling import build_model
 from detectron2.utils.logger import setup_logger
-from grad_cam import GradCAM        #, GradCamPlusPlus
+from grad_cam_head import GradCAM, bbox_iou        #, GradCamPlusPlus
 from skimage import io
 from torch import nn
 from utils_previous import get_res_img, put_text_box, concat_images, calculate_acc, scale_coords_new, xyxy2xywh, xywh2xyxy
 import util_my_yolov5 as ut
+
+import imageio
 
 import argparse
 from deep_utils import Box, split_extension
@@ -82,16 +84,16 @@ target_layer_group_dict = {
     'backbone.res4.5.conv1' : [1,1,0],
     'backbone.res4.5.conv2' : [3,1,1], 
     'backbone.res4.5.conv3' : [1,1,0],
-    # 'roi_heads.pooler.level_poolers.0' : [1,1,0],
-    # 'roi_heads.res5.0.conv1' : [1,2,0],
-    # 'roi_heads.res5.0.conv2' : [3,1,1],
-    # 'roi_heads.res5.0.conv3' : [1,1,0],
-    # 'roi_heads.res5.1.conv1' : [1,1,0],
-    # 'roi_heads.res5.1.conv2' : [3,1,1],
-    # 'roi_heads.res5.1.conv3' : [1,1,0],
-    # 'roi_heads.res5.2.conv1' : [1,1,0],
-    # 'roi_heads.res5.2.conv2' : [3,1,1],
-    # 'roi_heads.res5.2.conv3' : [1,1,0],
+    'roi_heads.pooler.level_poolers.0' : [],
+    'roi_heads.res5.0.conv1' : [1,2,0],
+    'roi_heads.res5.0.conv2' : [3,1,1],
+    'roi_heads.res5.0.conv3' : [1,1,0],
+    'roi_heads.res5.1.conv1' : [1,1,0],
+    'roi_heads.res5.1.conv2' : [3,1,1],
+    'roi_heads.res5.1.conv3' : [1,1,0],
+    'roi_heads.res5.2.conv1' : [1,1,0],
+    'roi_heads.res5.2.conv2' : [3,1,1],
+    'roi_heads.res5.2.conv3' : [1,1,0],
     }
 
 
@@ -271,9 +273,10 @@ def get_parser(img_path, run_device, dataset):
 
 def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_xywh, cfg):
     # Compute Region Area
-    valid_area = 0
-    for cor in label_data_corr_xywh:
-        valid_area = valid_area + cor[2]*cor[3]
+    # valid_area = 0
+    # for cor in label_data_corr_xywh:
+    #     valid_area = valid_area + cor[2]*cor[3]
+    valid_area = np.sum(masks_ndarray>1e-2)
     valid_area = np.round(valid_area).astype('int32')
 
     height, width = img.shape[:2]
@@ -282,6 +285,10 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     )
     image = transform_gen.get_transform(img).apply_image(img)
     torch_img = torch.as_tensor(image.astype("float32").transpose(2, 0, 1)).requires_grad_(True)
+
+    # Jinhan: DEBUG
+    imgs_deletion = []
+    imgs_insertation = []
 
     # torch_img = model.preprocessing(img[..., ::-1])
 
@@ -294,6 +301,7 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     if sum(sum(masks_ndarray)) == 0:
         masks_ndarray[0, 0] = 1
         masks_ndarray[1, 1] = 0.5
+        return [],[],[]
     masks_ndarray_flatten = masks_ndarray.flatten()
     # masks_ndarray_positive = masks_ndarray_flatten[masks_ndarray_flatten > delta_thr]
     masks_ndarray_positive = masks_ndarray_flatten
@@ -318,6 +326,8 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
             img_raw_float_use[masks_ndarray_RGB > i_thr] = np.random.rand(sum(sum(sum(masks_ndarray_RGB > i_thr))), )
             img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
 
+            imgs_deletion.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view deletion process
+
             # torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
             image = transform_gen.get_transform(img_raw_uint8_use).apply_image(img_raw_uint8_use)
             torch_img_rand = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
@@ -341,6 +351,10 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     for i, (preds_deletion_i) in enumerate(preds_deletion):
         for bbox_one, cls_idx_one, conf_one in zip(preds_deletion_i.pred_boxes.tensor, preds_deletion_i.pred_classes, preds_deletion_i.scores):
             if cls_idx_one.item() in label_data_class.astype(np.int64):
+                
+                # Jinhan: DEBUG
+                # imgs_deletion[i] = put_text_box(bbox_one,'test',imgs_deletion[i]).astype('uint8')[...,[1,0,2]]
+                
                 boxes_rescale_xyxy, boxes_rescale_xywh, _ = rescale_box_list([[bbox_one.detach().cpu().numpy()[[1,0,3,2]]]], shape_new, shape_new) # yxyx
                 pred_deletion_adj[0][i].append(boxes_rescale_xyxy.tolist()[0])
                 pred_deletion_adj[1][i].append(boxes_rescale_xywh.tolist()[0])
@@ -368,6 +382,9 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
             img_raw_float_use[masks_ndarray_RGB <= i_thr] = 0
             img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
 
+            # Jinhan : DEBUG
+            imgs_insertation.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view deletion process
+
             # torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
             image = transform_gen.get_transform(img_raw_uint8_use).apply_image(img_raw_uint8_use)
             torch_img_rand = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
@@ -387,6 +404,10 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     for i, (preds_insertation_i) in enumerate(preds_insertation):
         for bbox_one, cls_idx_one, conf_one in zip(preds_insertation_i.pred_boxes.tensor, preds_insertation_i.pred_classes, preds_insertation_i.scores):
             if cls_idx_one.item() in label_data_class.astype(np.int64):
+                
+                # Jinhan: DEBUG
+                # imgs_insertation[i] = put_text_box(bbox_one,'test',imgs_insertation[i]).astype('uint8')[...,[1,0,2]]
+                
                 boxes_rescale_xyxy, boxes_rescale_xywh, _ = rescale_box_list([[bbox_one.detach().cpu().numpy()[[1,0,3,2]]]], shape_new, shape_new) # yxyx
                 pred_insertation_adj[0][i].append(boxes_rescale_xyxy.tolist()[0])
                 pred_insertation_adj[1][i].append(boxes_rescale_xywh.tolist()[0])
@@ -406,7 +427,7 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     # plt.imshow(img_show_ndarray_cat)
     # plt.show()
 
-    return pred_deletion_adj, pred_insertation_adj, thr_descend
+    return pred_deletion_adj, pred_insertation_adj, thr_descend, imgs_deletion, imgs_insertation
 
 def rescale_box_list(boxes, shape_raw, shape_new):
     if len(boxes):
@@ -488,8 +509,8 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     )
 
     if dataset == 'mscoco':
-        bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
-        bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
+        # bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos.xlsx')
+        # bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
         # class used in experiments
         class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
@@ -523,10 +544,21 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         images = [img]
         result = img
         
-        for i in range(len(masks)):
-            # DEBUG
-            masks[i] = masks[i] #F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-        masks_sum = masks_sum #F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+        if sigma_factor != -1:
+            for i in range(len(masks)):
+                # DEBUG
+                masks[i] = masks[i] #F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+            masks_sum = masks_sum #F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+        else:
+            for i in range(len(masks)):
+                # DEBUG
+                masks[i] = F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+                saliency_map_min, saliency_map_max = masks[i].min(), masks[i].max()
+                masks[i] = (masks[i] - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+
+            masks_sum = F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+            saliency_map_min, saliency_map_max = masks_sum.min(), masks_sum.max()
+            masks_sum = (masks_sum - saliency_map_min).div(saliency_map_max - saliency_map_min).data
 
         if sel_method != 'odam':    
             masks = [masks_sum]
@@ -616,8 +648,12 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         images.append(res_img * 255)
         final_image = concat_images(images)
         img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
-        output_path = f'{args.output_dir.replace("FACTOR",str(sigma_factor))}/{img_name}'
-        os.makedirs(args.output_dir.replace("FACTOR",str(sigma_factor)), exist_ok=True)
+        if sigma_factor == -1:
+            output_path = f'{args.output_dir.replace("gaussian_sigmaFACTOR","bilinear")}/{img_name}'
+            os.makedirs(args.output_dir.replace("gaussian_sigmaFACTOR", "bilinear"), exist_ok=True)
+        else:
+            output_path = f'{args.output_dir.replace("FACTOR",str(sigma_factor))}/{img_name}'
+            os.makedirs(args.output_dir.replace("FACTOR",str(sigma_factor)), exist_ok=True)
         print(f'[INFO] Saving the final image at {output_path}')
         cv2.imwrite(output_path, final_image)
 
@@ -626,8 +662,26 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
 
         # # AI Saliency Map Computation
         masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
-        preds_deletion, preds_insertation, _ = compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_xywh, cfg)
-        #
+
+        start = time.time()
+        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = compute_faith(model, img, masks_ndarray,label_data_class, label_data_corr_xywh, cfg)
+        end = time.time()
+        # compress gif
+        downscaled_ratio = 0.4
+        saved_size = [int(res_img.shape[1] * downscaled_ratio),
+                      int(res_img.shape[0] * downscaled_ratio)
+                    ]
+        saliency_preview = [cv2.resize((res_img * 255).astype('uint8')[...,::-1], saved_size) for i in range(60)]
+        imgs_deletion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_deletion]
+        imgs_insertion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_insertion]
+        if sigma_factor == -1:
+            imageio.mimsave(f'{os.path.join(args.output_dir.replace("gaussian_sigmaFACTOR","bilinear"),img_name+".deletion")}.gif', imgs_deletion_new)
+            imageio.mimsave(f'{os.path.join(args.output_dir.replace("gaussian_sigmaFACTOR","bilinear"),img_name+".insertion")}.gif', imgs_insertion_new)
+        else:
+            imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".deletion")}.gif', imgs_deletion_new)
+            imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".insertion")}.gif', imgs_insertion_new)
+
+
         scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
                                                     'boxes_pred_xyxy': boxes_rescale_xyxy,
                                                     'boxes_pred_xywh': boxes_rescale_xywh,
@@ -641,6 +695,11 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
                                                     'class_names_sel': class_names_sel,
                                                     'boxes_gt_classes_names': label_data_class_names,
                                                     })
+        
+        gc.collect()
+        torch.cuda.empty_cache()  
+
+        print(f"Duration: {int(end - start)}s")
 
         # # # Human Saliency Map Loading
         # human_saliency_map_path = 'E:/HKU/HKU_XAI_Project/XAI_Similarity_1/human_saliency_map_hum_new_1/' + img_num + '_GSmo_30.mat'
@@ -712,17 +771,17 @@ if __name__ == '__main__':
     sel_nms = 'NMS'
     sel_prob = 'class'
     sel_norm = 'norm'
-    sigma_factors = [2,4]
+    sigma_factors = [-1]
 
-    for category in ["mscoco","vehicle","human"]:
+    for category in ["mscoco"]:
         if category == "mscoco":
-                class_names_sel = None # infer class name from image name. done in main()
+                class_names_sel = None
                 sel_model = '/mnt/h/jinhan/xai/models/model_final_721ade.pkl'
                 coco_labels_path = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/COCO_classes.txt"
                 class_names_gt = [line.strip() for line in open(coco_labels_path)]
                 input_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/DET'   #Veh_id_img
                 input_main_dir_label = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/annotations_DET'   #Veh_id_label
-                output_main_dir = '/mnt/h/jinhan/results/mscoco/xai_saliency_maps_faster_gaussian_sigmaFACTOR/fullgradcamraw'    # _humanAttention _trainedXAI
+                output_main_dir = '/mnt/h/jinhan/results/mscoco/unrestricted_valid_area/xai_saliency_maps_faster_gaussian_sigmaFACTOR/fullgradcamraw'    # _humanAttention _trainedXAI
         else:
             sel_model = "/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth"
             class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
@@ -756,7 +815,7 @@ if __name__ == '__main__':
 
             if target_layer_group_name == 'stem.MaxPool' or\
                 target_layer_group_name == 'backbone.stem.conv1': continue
-            
+                        
             sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
             args.output_dir = os.path.join(output_main_dir, sub_dir_name)
             args.target_layer = target_layer_group_name
@@ -771,21 +830,33 @@ if __name__ == '__main__':
                     # if 'chair_81061' not in item_img: continue
 
                     if category == 'mscoco':
-                        sampled_images = ['giraffe_287545.png', 'elephant_97230.png', 'chair_81061.png']
+                        sampled_images = ['chair_81061.png','elephant_97230.png','giraffe_287545.png']
                     elif category == 'vehicle':
-                        sampled_images = ['362.jpg', '930.jpg', '1331.jpg']
+                        sampled_images = ['362.jpg','930.jpg','1331.jpg']
                     elif category == 'human':
-                        sampled_images = ['601.jpg', '425.jpg', '1304.jpg']
+                        sampled_images = ['47.jpg','601.jpg','1304.jpg']
+
+                    # if category == 'mscoco':
+                    #     sampled_images = ['chair_81061.png', 'elephant_97230.png', 'giraffe_287545.png']
+                    # elif category == 'vehicle':
+                    #     sampled_images = ['362.jpg', '930.jpg', '1331.jpg']
+                    # elif category == 'human':
+                    #     sampled_images = ['601.jpg', '425.jpg', '1304.jpg']
 
                     if item_img not in sampled_images: continue
 
-                    all_saved = True
-                    for sigma_factor in sigma_factors:
-                        if not os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) or\
-                            not os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")):
-                            all_saved = False
+                    sigma_factors_to_run = sigma_factors.copy()
 
-                    if all_saved: continue
+                    for sigma_factor in sigma_factors:
+                        if sigma_factor == -1:
+                            if os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), split_extension(item_img,suffix='-res'))) and\
+                                os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")):
+                                sigma_factors_to_run.remove(sigma_factor)
+                        elif os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
+                            os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")):
+                            sigma_factors_to_run.remove(sigma_factor)
+
+                    if len(sigma_factors_to_run)==0: continue
 
                     item_label = item_img[:-4]+'.txt'
                     arguments = get_parser(os.path.join(input_main_dir, item_img), device, category).parse_args()
@@ -800,3 +871,13 @@ if __name__ == '__main__':
 
             else:
                 main(input_main_dir)
+
+        del model
+
+    script_path = '/mnt/h/jinhan/xai/fasterRCNN/multi_layer.sh'
+    with open(script_path,'r') as file:
+        data = file.readlines()
+    data[6] = '#' + data[6]
+    with open(script_path,'w') as file:
+        file.writelines(data)
+
