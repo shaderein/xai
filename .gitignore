@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 *.pth
+*.pkl
 .nfs*
 
 **/data/
@@ -172,3 +173,6 @@ cython_debug/
 
 attention_maps_generation/
 !attention_maps_generation/*.m
+
+# Large files
+fasterRCNN/fasterrcnn_c4_model.onnx
