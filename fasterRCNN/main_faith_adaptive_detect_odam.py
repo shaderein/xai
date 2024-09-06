@@ -284,9 +284,9 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     image = transform_gen.get_transform(img).apply_image(img)
     torch_img = torch.as_tensor(image.astype("float32").transpose(2, 0, 1)).requires_grad_(True)
 
-    # # Jinhan: DEBUG
-    # imgs_deletion = []
-    # imgs_insertation = []
+    # Jinhan: DEBUG
+    imgs_deletion = []
+    imgs_insertation = []
 
     # torch_img = model.preprocessing(img[..., ::-1])
 
@@ -294,11 +294,13 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     # Sort Saliency Map
     delta_thr = 0
     num_thr = 100
+    sample_step = 10
     masks_ndarray[np.isnan(masks_ndarray)] = 0
     masks_ndarray[masks_ndarray <= delta_thr] = 0
     if sum(sum(masks_ndarray)) == 0:
         masks_ndarray[0, 0] = 1
         masks_ndarray[1, 1] = 0.5
+        return [],[],[]
     masks_ndarray_flatten = masks_ndarray.flatten()
     # masks_ndarray_positive = masks_ndarray_flatten[masks_ndarray_flatten > delta_thr]
     masks_ndarray_positive = masks_ndarray_flatten
@@ -318,7 +320,7 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     preds_deletion_rec = [] #torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
     input_batch = []
     with torch.no_grad():
-        for i_thr in thr_descend:
+        for idx, i_thr in enumerate(thr_descend):
             img_raw_float_use = img_raw_float.copy()
             img_raw_float_use[masks_ndarray_RGB > i_thr] = np.random.rand(sum(sum(sum(masks_ndarray_RGB > i_thr))), )
             img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
@@ -329,13 +331,9 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
             image = transform_gen.get_transform(img_raw_uint8_use).apply_image(img_raw_uint8_use)
             torch_img_rand = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
             inputs = {"image": torch_img_rand, "height": height, "width": width}
-            input_batch.append(inputs)
-            if not (input_batch.__len__() % 10):
-                preds_deletion_rec.extend(model(input_batch))
-                input_batch = []
-        if input_batch.__len__():
-            preds_deletion_rec.extend(model(input_batch))
-            input_batch = []
+            # input_batch.append(inputs)
+            if not ((idx+1) % sample_step):
+                preds_deletion_rec.extend(model([inputs]))
     preds_deletion = []
     for preds_deletion_rec_i in preds_deletion_rec:
         preds_deletion.append(preds_deletion_rec_i['instances'])
@@ -344,13 +342,13 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     shape_new = [np.size(img, 1), np.size(img, 0)]  # w, h
     # Jinhan: unlike Yolov5, FasterRCNN doesn't have head indices in its output, but keep the return value ds consistent
     #   for the downstream faithfulness mAUC calculation
-    pred_deletion_adj = [[[] for _ in range(num_thr)] for _ in range(5)]
+    pred_deletion_adj = [[[] for _ in range(int(num_thr/sample_step))] for _ in range(5)]
     for i, (preds_deletion_i) in enumerate(preds_deletion):
         for bbox_one, cls_idx_one, conf_one in zip(preds_deletion_i.pred_boxes.tensor, preds_deletion_i.pred_classes, preds_deletion_i.scores):
             if cls_idx_one.item() in label_data_class.astype(np.int64):
                 
-                # Jinhan: DEBUG
-                # imgs_deletion[i] = put_text_box(bbox_one,'test',imgs_deletion[i]).astype('uint8')
+                # Jinhan: DEBUGD
+                # imgs_deletion[i] = put_text_box(bbox_one,'test',imgs_deletion[i]).astype('uint8')[...,[1,0,2]]
                 
                 boxes_rescale_xyxy, boxes_rescale_xywh, _ = rescale_box_list([[bbox_one.detach().cpu().numpy()[[1,0,3,2]]]], shape_new, shape_new) # yxyx
                 pred_deletion_adj[0][i].append(boxes_rescale_xyxy.tolist()[0])
@@ -374,7 +372,7 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
     preds_insertation_rec = [] #torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
     input_batch = []
     with torch.no_grad():
-        for i_thr in thr_descend:
+        for idx, i_thr in enumerate(thr_descend):
             img_raw_float_use = img_raw_float.copy()
             img_raw_float_use[masks_ndarray_RGB <= i_thr] = 0
             img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
@@ -386,24 +384,20 @@ def compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_x
             image = transform_gen.get_transform(img_raw_uint8_use).apply_image(img_raw_uint8_use)
             torch_img_rand = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
             inputs = {"image": torch_img_rand, "height": height, "width": width}
-            input_batch.append(inputs)
-            if not (input_batch.__len__() % 10):
-                preds_insertation_rec.extend(model(input_batch))
-                input_batch = []
-        if input_batch.__len__():
-            preds_insertation_rec.extend(model(input_batch))
-            input_batch = []
+            # input_batch.append(inputs)
+            if not ((idx+1) % sample_step):
+                preds_insertation_rec.extend(model([inputs]))
     preds_insertation = []
     for preds_insertation_rec_i in preds_insertation_rec:
         preds_insertation.append(preds_insertation_rec_i['instances'])
 
-    pred_insertation_adj = [[[] for _ in range(num_thr)] for _ in range(5)]
+    pred_insertation_adj = [[[] for _ in range(int(num_thr/sample_step))] for _ in range(5)]
     for i, (preds_insertation_i) in enumerate(preds_insertation):
         for bbox_one, cls_idx_one, conf_one in zip(preds_insertation_i.pred_boxes.tensor, preds_insertation_i.pred_classes, preds_insertation_i.scores):
             if cls_idx_one.item() in label_data_class.astype(np.int64):
                 
                 # Jinhan: DEBUG
-                # imgs_insertation[i] = put_text_box(bbox_one,'test',imgs_insertation[i]).astype('uint8')
+                # imgs_insertation[i] = put_text_box(bbox_one,'test',imgs_insertation[i]).astype('uint8')[...,[1,0,2]]
                 
                 boxes_rescale_xyxy, boxes_rescale_xywh, _ = rescale_box_list([[bbox_one.detach().cpu().numpy()[[1,0,3,2]]]], shape_new, shape_new) # yxyx
                 pred_insertation_adj[0][i].append(boxes_rescale_xyxy.tolist()[0])
@@ -469,9 +463,9 @@ def area(a, b, threshold=0.5):
         return  percentage if percentage > threshold else -1
     else:
         return -1
-
+    
 def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_num,
-        dataset, class_names_gt, class_names_sel,
+        dataset, class_names_gt, class_names_sel, sigma_factors,
         sel_norm="norm", sel_method="odam"):
     # sel_norm_str = 'norm'
 
@@ -550,10 +544,21 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         images = [img]
         result = img
         
-        for i in range(len(masks)):
-            # DEBUG
-            masks[i] = masks[i] #F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
-        masks_sum = masks_sum #F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+        if sigma_factor != -1:
+            for i in range(len(masks)):
+                # DEBUG
+                masks[i] = masks[i] #F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+            masks_sum = masks_sum #F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+        else:
+            for i in range(len(masks)):
+                # DEBUG
+                masks[i] = F.interpolate(masks[i], size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+                saliency_map_min, saliency_map_max = masks[i].min(), masks[i].max()
+                masks[i] = (masks[i] - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+
+            masks_sum = F.interpolate(masks_sum, size=(np.size(img, 0), np.size(img, 1)), mode='bilinear', align_corners=False)
+            saliency_map_min, saliency_map_max = masks_sum.min(), masks_sum.max()
+            masks_sum = (masks_sum - saliency_map_min).div(saliency_map_max - saliency_map_min).data
 
         if sel_method != 'odam':    
             masks = [masks_sum]
@@ -573,8 +578,8 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
             boxes_rescale_xyxy = boxes_rescale_yxyx[:, [1,0,3,2]]
             boxes_rescale_xywh = xyxy2xywh(boxes_rescale_xyxy)
         else:
-            boxes_rescale_xyxy = 0
-            boxes_rescale_xywh = 0
+            boxes_rescale_xyxy = []
+            boxes_rescale_xywh = []
 
         # boxes[0][0] = [322, 0.0, 381, 35]
         # boxes[1][0] = [322, 0.0, 381, 35]
@@ -704,8 +709,12 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         images.append(all_mask_img * 255)
         final_image = concat_images(images)
         img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
-        output_path = f'{args.output_dir.replace("FACTOR",str(sigma_factor))}/{img_name}'
-        os.makedirs(args.output_dir.replace("FACTOR",str(sigma_factor)), exist_ok=True)
+        if sigma_factor == -1:
+            output_path = f'{args.output_dir.replace("gaussian_sigmaFACTOR","bilinear")}/{img_name}'
+            os.makedirs(args.output_dir.replace("gaussian_sigmaFACTOR", "bilinear"), exist_ok=True)
+        else:
+            output_path = f'{args.output_dir.replace("FACTOR",str(sigma_factor))}/{img_name}'
+            os.makedirs(args.output_dir.replace("FACTOR",str(sigma_factor)), exist_ok=True)
         print(f'[INFO] Saving the final image at {output_path}')
         cv2.imwrite(output_path, final_image)
 
@@ -718,8 +727,10 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         else: 
             masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
 
-        preds_deletion, preds_insertation, _ = compute_faith(model, img, masks_ndarray,label_data_class, label_data_corr_xywh[[target_idx_GT]], cfg)
-        
+        start = time.time()
+        preds_deletion, preds_insertation, _ = compute_faith(model, img, masks_ndarray, label_data_class, label_data_corr_xywh[[target_idx_GT]], cfg)
+        end = time.time()
+
         # preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = compute_faith(model, img, masks_ndarray,label_data_class, label_data_corr_xywh[[target_idx_GT]], cfg)
         # # compress gif
         # downscaled_ratio = 0.4
@@ -729,23 +740,49 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         # saliency_preview = [cv2.resize((res_img * 255).astype('uint8')[...,::-1], saved_size) for i in range(60)]
         # imgs_deletion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_deletion]
         # imgs_insertion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_insertion]
-        # imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".deletion")}.gif', imgs_deletion_new)
-        # imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".insertion")}.gif', imgs_insertion_new)
+        # if sigma_factor == -1:
+        #     imageio.mimsave(f'{os.path.join(args.output_dir.replace("gaussian_sigmaFACTOR","bilinear"),img_name+".deletion")}.gif', imgs_deletion_new)
+        #     imageio.mimsave(f'{os.path.join(args.output_dir.replace("gaussian_sigmaFACTOR","bilinear"),img_name+".insertion")}.gif', imgs_insertion_new)
+        # else:
+        #     imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".deletion")}.gif', imgs_deletion_new)
+        #     imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".insertion")}.gif', imgs_insertion_new)
         # #
 
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                    'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
-                                                    'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
-                                                    'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
-                                                    'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
-                                                    'HitRate': Vacc,
-                                                    'boxes_pred_conf': obj_prob,
-                                                    'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
-                                                    'preds_deletion': preds_deletion,
-                                                    'preds_insertation': preds_insertation,
-                                                    'class_names_sel': class_names_sel,
-                                                    'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
-                                                    })
+        try:
+
+            if len(boxes_rescale_xyxy) == 0:
+                scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                        'boxes_pred_xyxy': [],
+                                                        'boxes_pred_xywh': [],
+                                                        'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+                                                        'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+                                                        'HitRate': Vacc,
+                                                        'boxes_pred_conf': obj_prob,
+                                                        'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
+                                                        'preds_deletion': preds_deletion,
+                                                        'preds_insertation': preds_insertation,
+                                                        'class_names_sel': class_names_sel,
+                                                        'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
+                                                        })
+            else:
+                scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                            'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
+                                                            'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
+                                                            'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+                                                            'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+                                                            'HitRate': Vacc,
+                                                            'boxes_pred_conf': obj_prob,
+                                                            'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
+                                                            'preds_deletion': preds_deletion,
+                                                            'preds_insertation': preds_insertation,
+                                                            'class_names_sel': class_names_sel,
+                                                            'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
+                                                            })
+                
+        except:
+            pass
+            
+        print(f"Duration: {int(end - start)}s")
 
         # # # Human Saliency Map Loading
         # human_saliency_map_path = 'E:/HKU/HKU_XAI_Project/XAI_Similarity_1/human_saliency_map_hum_new_1/' + img_num + '_GSmo_30.mat'
@@ -817,9 +854,11 @@ if __name__ == '__main__':
     sel_nms = 'NMS'
     sel_prob = 'class'
     sel_norm = 'norm'
-    sigma_factors = [2,4]
+    sigma_factors = [-1,2,4]
 
-    for category in ["mscoco"]:#,"vehicle","human"]:
+    for category in ["mscoco","vehicle","human"]:
+        skip_images = []
+
         if category == "mscoco":
                 class_names_sel = None
                 sel_model = '/mnt/h/jinhan/xai/models/model_final_721ade.pkl'
@@ -860,8 +899,9 @@ if __name__ == '__main__':
             # if target_layer_group_name not in ['F15','F16','F17']: continue
 
             if target_layer_group_name == 'stem.MaxPool' or\
-                target_layer_group_name == 'backbone.stem.conv1' or\
-                'backbone' in target_layer_group_name: continue
+                target_layer_group_name == 'backbone.stem.conv1': continue
+            
+            # if 'backbone' in target_layer_group_name: continue
             
             sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
             args.output_dir = os.path.join(output_main_dir, sub_dir_name)
@@ -877,27 +917,34 @@ if __name__ == '__main__':
                     # if 'chair_81061' not in item_img: continue
 
                     if category == 'mscoco':
-                        sampled_images = ['elephant_97230.png']#'chair_81061.png']#,]# 'giraffe_287545.png']
+                        sampled_images = ['chair_81061.png','elephant_97230.png','giraffe_287545.png']
+                        skip_images = ['book_472678.png','clock_164363.png','hair drier_178028.png','hair drier_239041.png', 'kite_405279.png', 'mouse_513688.png', 'toaster_232348.png', 'toaster_453302.png', 'toothbrush_218439.png', 'traffic light_453841.png']
                     elif category == 'vehicle':
-                        sampled_images = ['362.jpg']#,'930.jpg']#,'1331.jpg']
+                        sampled_images = ['362.jpg','930.jpg','1331.jpg']
                     elif category == 'human':
-                        sampled_images = ['601.jpg']#, '425.jpg']#, '1304.jpg']
+                        sampled_images = ['47.jpg','601.jpg','1304.jpg']
 
-                    if item_img not in sampled_images: continue
+                    # if item_img not in sampled_images: continue
 
-                    all_saved = True
+                    sigma_factors_to_run = sigma_factors.copy()
+
                     for sigma_factor in sigma_factors:
-                        if not os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) or\
-                            not os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")):
-                            all_saved = False
+                        if sigma_factor == -1:
+                            if os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), split_extension(item_img,suffix='-res'))) and\
+                                os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")):
+                                sigma_factors_to_run.remove(sigma_factor)
+                        elif os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
+                            os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")):
+                            sigma_factors_to_run.remove(sigma_factor)
 
-                    if all_saved: continue
+                    if len(sigma_factors_to_run)==0: continue
+                    if item_img in skip_images: continue # model failed to detect the target
 
                     item_label = item_img[:-4]+'.txt'
                     arguments = get_parser(os.path.join(input_main_dir, item_img), device, category).parse_args()
 
                     main(arguments, os.path.join(input_main_dir, item_img), os.path.join(input_main_dir_label, item_label), target_layer_group_name, model, cfg, item_img[:-4],
-                        category, class_names_gt, class_names_sel)
+                        category, class_names_gt, class_names_sel, sigma_factors_to_run)
 
                     # del model, saliency_method
                     gc.collect()

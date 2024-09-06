@@ -6,7 +6,7 @@ cd /mnt/h/jinhan/xai/fasterRCNN
 # Script to run another script, kill it after a fixed duration, and restart it
 
 SCRIPT_PATH="/mnt/h/jinhan/xai/fasterRCNN/multi_layer.sh"
-RUN_TIME=200  # Time in seconds after which to kill the script
+RUN_TIME=1000  # Time in seconds after which to kill the script
 
 while true; do
     # Start the script in the background

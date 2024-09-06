@@ -39,7 +39,7 @@ GeneralizedRCNN(
           (norm): FrozenBatchNorm2d(num_features=256, eps=1e-05)
         )
       )
-      (2): BottleneckBlock(
+      (2): BottleneckBlock( ## F3
         (conv1): Conv2d(
           256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False
           (norm): FrozenBatchNorm2d(num_features=64, eps=1e-05)
@@ -110,7 +110,7 @@ GeneralizedRCNN(
           128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
           (norm): FrozenBatchNorm2d(num_features=128, eps=1e-05)
         )
-        (conv3): Conv2d(
+        (conv3): Conv2d( ## F7
           128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False
           (norm): FrozenBatchNorm2d(num_features=512, eps=1e-05)
         )
@@ -237,7 +237,7 @@ GeneralizedRCNN(
           (norm): FrozenBatchNorm2d(num_features=512, eps=1e-05)
         )
         (conv2): Conv2d(
-          512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+          512, 512, kernel_size=(3, 3), stride=(1, 1),  =(1, 1), bias=False
           (norm): FrozenBatchNorm2d(num_features=512, eps=1e-05)
         )
         (conv3): Conv2d(

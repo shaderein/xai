@@ -19,7 +19,7 @@ def roi_map_to_original_image(pool_dams, rois, original_size):
     Reference: https://github.com/Cyang-Zhao/ODAM/blob/e776c3b69050038cbf6a640e5d7b78a930458341/model/rcnn_odamTrain/network.py#L238
 
     :param pool_dams: Tensor of shape [N, 1, H_pool, W_pool], the pooled feature data.
-    :param rois: Tensor of shape [N, 4] (x1, y1, x2, y2) based on original image dimensions.
+    :param rois: Tensor of shape [N, 4] (x1, y1, x2, y2) based on preprocessed image dimensions.
     :param original_size: Tuple (height, width) of the original image size.
     :return: Tensor of shape [N, original_size[0], original_size[1]], mapped feature data.
     """
@@ -209,7 +209,7 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
     start_y = start[:, 1, np.newaxis, np.newaxis]
 
     # Calculate the center positions in the preprocessed image
-    center_x = x_indices * jump_x + start_x
+    center_x = x_indices * jump_x + start_x # Shape: (1, saliency_height, saliency_width)
     center_y = y_indices * jump_y + start_y
 
     # Map to original image coordinates
@@ -219,28 +219,14 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
     # Stack the mapped coordinates into the output array
     mapped_locs = np.stack((mapped_center_x, mapped_center_y), axis=-1)
 
-    # mapped_locs = np.zeros((saliency_height, saliency_width, 2))
-
-    # for i in range(saliency_height):
-    #     for j in range(saliency_width):
-    #         center_x = j * stride - padding + receptive_field // 2
-    #         center_y = i * stride - padding + receptive_field // 2
-
-    #         # Map to original image coordinates
-    #         center_x = int(center_x * width_ratio)
-    #         center_y = int(center_y * height_ratio)
-
-    #         mapped_locs[i, j, 0] = center_x
-    #         mapped_locs[i, j, 1] = center_y
-
     return mapped_locs
 
 def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_size, sigma_factor=2):
     """
     Apply Gaussian kernel to the saliency map locations and upsample to the original image size.
     Args:
-    - saliency_map (N,C,W,H): N=#proposals for head and N=1 for backone. C=1 (summed over channls in fullgradcam)
-    - mapped_locs (N,W,H,2): Mapped locations on the original image.
+    - saliency_map (N,C,H,W): N=#proposals for head and N=1 for backone. C=1 (summed over channls in fullgradcam)
+    - mapped_locs (N,H,W,2): Mapped locations on the original image.
     - receptive_field (N,2): Size of the receptive field in x and y dimension
     - original_size (tuple): The size of the original image.
 
@@ -271,18 +257,25 @@ def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_s
         center_x = mapped_locs[n, :, :, 0].astype(int)
         center_y = mapped_locs[n, :, :, 1].astype(int)
 
-        start_x = np.maximum(center_x - w // 2, 0)
-        end_x = np.minimum(center_x + w // 2 + 1, original_width)
-        start_y = np.maximum(center_y - h // 2, 0)
-        end_y = np.minimum(center_y + h // 2 + 1, original_height)
+        # Determine the region in the output array
+        sx = np.maximum(center_x - w // 2, 0)
+        ex = np.minimum(center_x + w // 2 + 1, original_width)
+        sy = np.maximum(center_y - h // 2, 0)
+        ey = np.minimum(center_y + h // 2 + 1, original_height)
+
+        # Determine the relative region in the gaussian kernel
+        gsx = np.maximum(0, w // 2 - (center_x - sx))
+        gex = gsx + (ex - sx)
+        gsy = np.maximum(0, h // 2 - (center_y - sy))
+        gey = gsy + (ey - sy)
 
         for i in range(saliency_height):
             for j in range(saliency_width):
                 cx, cy = center_x[i, j], center_y[i, j]
                 if 0 <= cx < original_width and 0 <= cy < original_height:
-                    sx, ex = start_x[i, j], end_x[i, j]
-                    sy, ey = start_y[i, j], end_y[i, j]
-                    output[n, 0, sy:ey, sx:ex] += saliency_map[n, 0, i, j] * gaussian[:ey - sy, :ex - sx]
+                    output[n, 0, sy[i, j]:ey[i, j], sx[i, j]:ex[i, j]] += (
+                        saliency_map[n, 0, i, j] * gaussian[gsy[i, j]:gey[i, j], gsx[i, j]:gex[i, j]]
+                    )
 
     return torch.tensor(output)
 
@@ -474,24 +467,29 @@ class GradCAM:
                     proposals = self.net.inference([inputs],do_postprocess=False,output_proposals=True)[0].proposal_boxes.tensor.detach()
                 saliency_map_orig = saliency_map
 
-                ## Rescale based on receptive field
-                receptive_field, jump, start = calculate_receptive_field(self.layer_name, self.layers, proposals)
+                if not (len(self.sigma_factors) == 1 and self.sigma_factors[0] == -1): # bilinear only
+                    ## Rescale based on receptive field
+                    receptive_field, jump, start = calculate_receptive_field(self.layer_name, self.layers, proposals)
 
-                # Adjust the receptive field to account for the input resizing in preprocessing
-                height_ratio = h_orig / h
-                width_ratio = w_orig / w
-                adjusted_receptive_field = receptive_field
-                adjusted_receptive_field[:,0] = receptive_field[:,0] * width_ratio
-                adjusted_receptive_field[:,1] = receptive_field[:,1] * height_ratio
+                    # Adjust the receptive field to account for the input resizing in preprocessing
+                    height_ratio = h_orig / h
+                    width_ratio = w_orig / w
+                    adjusted_receptive_field = receptive_field
+                    adjusted_receptive_field[:,0] = receptive_field[:,0] * width_ratio
+                    adjusted_receptive_field[:,1] = receptive_field[:,1] * height_ratio
 
-                # print(f"Receptive field: {receptive_field}, adjusted: {adjusted_receptive_field}")
+                    # print(f"Receptive field: {receptive_field}, adjusted: {adjusted_receptive_field}")
 
-                # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
-                #   mapped to the original image
-                mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), jump, start)
+                    # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
+                    #   mapped to the original image
+                    mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), jump, start)
 
                 for sigma_factor in self.sigma_factors:
-                    saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)
+                    if sigma_factor == -1:
+                        if proposals is not None:
+                            saliency_map = roi_map_to_original_image(saliency_map, proposals, (h,w)).sum(0,keepdim=True)
+                    else:
+                        saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)
 
                     if self.sel_norm_str == 'norm':
                         saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
