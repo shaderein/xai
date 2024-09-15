@@ -30,6 +30,8 @@ def check_single_condition(root_path):
         except:
             continue
 
+        if layer_name != 'backbone.res2.0.conv1': return
+
         layer_count.append(layer_name)
 
         img_count = []
@@ -66,6 +68,7 @@ def check_single_condition(root_path):
             #     print(img_file)
 
         print(f"{layer_name}:\t{len(img_count)} images;\t{len(empty_count)} empty;\t{len(failed_count)} failed;\t{len(zero_preds)} zero instead of []")
+        print(f"Failed: {failed_count}")
         if len(read_error_count) > 0:
             print(f"\t{len(read_error_count)} Read error: {read_error_count} Deleted!")
         debug = [img for img in empty_count if img not in failed_count]
@@ -75,8 +78,8 @@ def check_single_condition(root_path):
     print(f'{len(layer_count)} layers')
 
 for model in ['faster','yolov5s']:
-    for dataset in ['mscoco','vehicle','human']:
-        for upscale_type in ['gaussian_sigma2','gaussian_sigma4','bilinear']:
+    for dataset in ['vehicle','human']:
+        for upscale_type in ['gaussian_sigma2']:#,'gaussian_sigma4','bilinear']:
             if dataset != 'mscoco':
                 xai_path = os.path.join(root_dir,'bdd',f"xai_saliency_maps_{model}_{upscale_type}")
             else:
