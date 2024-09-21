@@ -157,22 +157,28 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
 
     torch_img = model.preprocessing(img[..., ::-1])
 
+    # Jinhan: DEBUG
+    imgs_deletion = []
+    imgs_insertation = []
+
     ### Deletion
     # Sort Saliency Map
     delta_thr = 0
     num_thr = 100
+    sample_step = 10
     masks_ndarray[np.isnan(masks_ndarray)] = 0
     masks_ndarray[masks_ndarray <= delta_thr] = 0
     if sum(sum(masks_ndarray)) == 0:
         masks_ndarray[0, 0] = 1
         masks_ndarray[1, 1] = 0.5
+        return [],[],[]
     masks_ndarray_flatten = masks_ndarray.flatten()
     # masks_ndarray_positive = masks_ndarray_flatten[masks_ndarray_flatten > delta_thr]
     masks_ndarray_positive = masks_ndarray_flatten
     masks_ndarray_sort = masks_ndarray_positive
     masks_ndarray_sort.sort()   # ascend
     masks_ndarray_sort = masks_ndarray_sort[::-1]   # descend
-    masks_ndarray_sort = masks_ndarray_sort[:valid_area]
+    masks_ndarray_sort = masks_ndarray_sort[:valid_area] # Jinhan: insert/perturb up to the whole image
     masks_ndarray_RGB = np.expand_dims(masks_ndarray, 2)
     masks_ndarray_RGB = np.concatenate((masks_ndarray_RGB, masks_ndarray_RGB, masks_ndarray_RGB),2)
     # thr_ascend = np.linspace(masks_ndarray_sort[0], masks_ndarray_sort[-1], num_thr, False)
@@ -183,18 +189,22 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
     img_raw_float = img_raw.astype('float')/255
     device = 'cuda' if next(model.model.parameters()).is_cuda else 'cpu'
     torch_img_deletion_rec = torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
-    for i_thr in thr_descend:
+    for idx, i_thr in enumerate(thr_descend):
         img_raw_float_use = img_raw_float.copy()
         img_raw_float_use[masks_ndarray_RGB > i_thr] = np.random.rand(sum(sum(sum(masks_ndarray_RGB > i_thr))), )
         img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
-        torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
-        torch_img_deletion_rec = torch.cat((torch_img_deletion_rec, torch_img_rand), 0)
+
+        # imgs_deletion.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view deletion process
+
+        if not ((idx+1) % sample_step):
+            torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
+            torch_img_deletion_rec = torch.cat((torch_img_deletion_rec, torch_img_rand), 0)
     with torch.no_grad():
         preds_deletion, logits_deletion, preds_logits_deletion, classHead_output_deletion = model(torch_img_deletion_rec)
 
     shape_raw = [torch_img_rand.size(3), torch_img_rand.size(2)]  # w, h
     shape_new = [np.size(img, 1), np.size(img, 0)]  # w, h
-    pred_deletion_adj = [[[] for _ in range(num_thr)] for _ in range(5)]
+    pred_deletion_adj = [[[] for _ in range(int(num_thr/sample_step))] for _ in range(5)]
     for i, (bbox, cls_idx, cls_name, conf) in enumerate(zip(preds_deletion[0], preds_deletion[1], preds_deletion[2], preds_deletion[3])):
         for j, (bbox_one, cls_idx_one, cls_name_one, conf_one) in enumerate(zip(bbox, cls_idx, cls_name, conf)):
             if cls_name_one in class_names_sel:
@@ -219,16 +229,20 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
 
     ### Insertation
     torch_img_insertation_rec = torch.zeros(0, torch_img.size(1), torch_img.size(2), torch_img.size(3), device=device)
-    for i_thr in thr_descend:
+    for idx, i_thr in enumerate(thr_descend):
         img_raw_float_use = img_raw_float.copy()
         img_raw_float_use[masks_ndarray_RGB <= i_thr] = 0
         img_raw_uint8_use = (img_raw_float_use*255).astype('uint8')
-        torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
-        torch_img_insertation_rec = torch.cat((torch_img_insertation_rec, torch_img_rand), 0)
+
+        # imgs_insertation.append(img_raw_uint8_use[..., ::-1]) # Jinhan: save image to view deletion process
+        
+        if not ((idx+1) % sample_step):
+            torch_img_rand = model.preprocessing(img_raw_uint8_use[..., ::-1])
+            torch_img_insertation_rec = torch.cat((torch_img_insertation_rec, torch_img_rand), 0)
     with torch.no_grad():
         preds_insertation, logits_insertation, preds_logits_insertation, classHead_output_insertation = model(torch_img_insertation_rec)
 
-    pred_insertation_adj = [[[] for _ in range(num_thr)] for _ in range(5)]
+    pred_insertation_adj = [[[] for _ in range(int(num_thr/sample_step))] for _ in range(5)]
     for i, (bbox, cls_idx, cls_name, conf) in enumerate(zip(preds_insertation[0], preds_insertation[1], preds_insertation[2], preds_insertation[3])):
         for j, (bbox_one, cls_idx_one, cls_name_one, conf_one) in enumerate(zip(bbox, cls_idx, cls_name, conf)):
             if cls_name_one in class_names_sel:
@@ -251,7 +265,7 @@ def compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_s
     # plt.imshow(img_show_ndarray_cat)
     # plt.show()
 
-    return pred_deletion_adj, pred_insertation_adj, thr_descend
+    return pred_deletion_adj, pred_insertation_adj, thr_descend, imgs_deletion, imgs_insertation
 
 def compute_faith_specificBBox(model, img, masks_ndarray, label_data_corr_xywh):
     # Compute Region Area
