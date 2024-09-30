@@ -6,12 +6,9 @@ Remove the previously saved masks_array_all item to save HKU workstation space
 """
 
 root_dirs = [
-    '/mnt/h/jinhan/results/ust/mscoco/xai_saliency_maps_yolov5s_bilinear',
-    '/mnt/h/jinhan/results/ust/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma2',
-    '/mnt/h/jinhan/results/ust/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma4',
-    '/mnt/h/jinhan/results/mscoco/xai_saliency_maps_yolov5s_bilinear',
-    '/mnt/h/jinhan/results/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma2',
-    '/mnt/h/jinhan/results/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma4',
+    '/opt/jinhanz/results/mscoco/xai_saliency_maps_yolov5s_bilinear',
+    '/opt/jinhanz/results/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma2',
+    '/opt/jinhanz/results/mscoco/xai_saliency_maps_yolov5s_gaussian_sigma4',
     ]
 
 for root in root_dirs:

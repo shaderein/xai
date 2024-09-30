@@ -24,22 +24,15 @@ def combine_images(root_dir, target_img_name, ext, sigma):
             for dir in os.listdir(root_dir):
                 if ".mat" in dir: continue
                 if layer in dir:
-                    image_path = os.path.join(root_dir,dir,f'{target_img_name}-res.{ext}')
+                    image_path = os.path.join(root_dir,dir,f'{target_img_name}.{ext}')
                     image = cv2.imread(image_path)
-                    if 'odam' in image_path:
-                        if 'vehicle' in image_path or 'human' in image_path:
-                            crop_img = image[:,round(image.shape[1]*1/3):round(image.shape[1]*2/3),:]
-                        else:
-                            crop_img = image[:,round(image.shape[1]*2/4):round(image.shape[1]*3/4),:]
-                    elif 'fullgradcamraw' in image_path:
-                        crop_img = image[:,round(image.shape[1]/2):,:]
                     ind_maps_dir = f"results/visualizations/all_maps_{root_dir.split('/')[-1]}/"
                     # if not os.path.exists(ind_maps_dir):
                     #     os.makedirs(ind_maps_dir)
                     # cv2.imwrite(os.path.join(ind_maps_dir,f"{layer}_{target_img_name}.png"),crop_img)
 
-                    crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
-                    axes[i,j].imshow(crop_img)
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    axes[i,j].imshow(image)
                     if "pooler" in layer:
                         axes[i,j].set_title(f"[{layer_idx}] {layer}",fontsize=int(title_font_size*0.8))
                     else:
@@ -70,7 +63,7 @@ condition = "perturb_pixel_whole_optimal_sigma"
 # for sigma in ['bilinear','gaussian_sigma2','gaussian_sigma4']:
 for sigma in ['gaussian_sigma2','gaussian_sigma4']:
     root_dir = f"/opt/jinhanz/results/{condition}/mscoco/xai_saliency_maps_yolov5s_optimal_{sigma}/fullgradcamraw"
-    target_img_name = 'chair_81061'
+    target_img_name = 'chair_81061-res_trf'
     ext = 'png'
     combine_images(root_dir,target_img_name,ext,sigma)
 
