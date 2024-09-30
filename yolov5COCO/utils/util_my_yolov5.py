@@ -516,9 +516,3 @@ def saveRawGradAct_operation(activations, gradients):
     np_activations = activations.detach().cpu().numpy()
 
     return saliency_map, [np_gradients, np_activations]
-
-
-
-
-
-
