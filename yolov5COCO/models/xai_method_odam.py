@@ -189,6 +189,70 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
 
     return mapped_locs
 
+def create_gaussian_kernel(size, sigma):
+    x = torch.arange(-size // 2 + 1., size // 2 + 1.)
+    y = torch.arange(-size // 2 + 1., size // 2 + 1.)
+    x_grid, y_grid = torch.meshgrid(x, y, indexing='ij')
+    kernel = torch.exp(-(x_grid**2 + y_grid**2) / (2 * sigma**2))
+    kernel = kernel / kernel.sum()  # Normalize the kernel
+    return kernel
+
+def apply_gaussian_kernel_torch(saliency_map, mapped_locs, receptive_field, original_size, sigma_factor=2):
+    """
+    Apply Gaussian kernel to the saliency map locations and upsample to the original image size.
+    Args:
+    - saliency_map (N,C,H,W): N=#proposals for head and N=1 for backone. C=1 (summed over channls in fullgradcam)
+    - mapped_locs (N,H,W,2): Mapped locations on the original image.
+    - receptive_field (N,2): Size of the receptive field in x and y dimension
+    - original_size (tuple): The size of the original image.
+
+    Returns:
+    - output (ndarray): Saliency map upsampled to the original image size.
+    """
+    N, C, saliency_height, saliency_width = saliency_map.shape
+    original_height, original_width = original_size
+    output = torch.zeros((N, C, original_height, original_width), dtype=np.float32, device=saliency_map.device) #TODO
+
+    for n in range(N):
+        # debug
+        sigma_x = receptive_field[n, 0] / sigma_factor
+        sigma_y = receptive_field[n, 1] / sigma_factor
+
+        kernel_size_x = math.ceil(sigma_x * 6)
+        kernel_size_y = math.ceil(sigma_y * 6)
+        if kernel_size_x % 2 == 0: kernel_size_x += 1
+        if kernel_size_y % 2 == 0: kernel_size_y += 1
+
+        gaussian_x = cv2.getGaussianKernel(ksize=kernel_size_x, sigma=sigma_x)
+        gaussian_y = cv2.getGaussianKernel(ksize=kernel_size_y, sigma=sigma_y)
+        gaussian = gaussian_y * gaussian_x.T  # Create 2D Gaussian kernel
+        h, w = gaussian.shape
+
+        center_x = mapped_locs[n, :, :, 0].astype(int)
+        center_y = mapped_locs[n, :, :, 1].astype(int)
+
+        # Determine the region in the output array
+        sx = np.maximum(center_x - w // 2, 0)
+        ex = np.minimum(center_x + w // 2 + 1, original_width)
+        sy = np.maximum(center_y - h // 2, 0)
+        ey = np.minimum(center_y + h // 2 + 1, original_height)
+
+        # Determine the relative region in the gaussian kernel
+        gsx = np.maximum(0, w // 2 - (center_x - sx))
+        gex = gsx + (ex - sx)
+        gsy = np.maximum(0, h // 2 - (center_y - sy))
+        gey = gsy + (ey - sy)
+
+        for i in range(saliency_height):
+            for j in range(saliency_width):
+                cx, cy = center_x[i, j], center_y[i, j]
+                if 0 <= cx < original_width and 0 <= cy < original_height:
+                    output[n, 0, sy[i, j]:ey[i, j], sx[i, j]:ex[i, j]] += (
+                        saliency_map[n, 0, i, j] * gaussian[gsy[i, j]:gey[i, j], gsx[i, j]:gex[i, j]]
+                    )
+
+    return torch.tensor(output)
+
 def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_size, sigma_factor=2):
     """
     Apply Gaussian kernel to the saliency map locations and upsample to the original image size.
@@ -250,7 +314,7 @@ def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_s
 
 class YOLOV5XAI:
 
-    def __init__(self, model, layer_names, sel_prob_str, sel_norm_str, sel_classes, sel_XAImethod,layers, sigma_factors=[-1,2,4],device=0,img_size=(640, 640),):
+    def __init__(self, model, layer_names, sel_prob_str, sel_norm_str, sel_classes, sel_XAImethod,layers, sigma_factors=[-1,2,4],device=0,img_size=(608, 608),):
         self.model = model
         self.gradients = dict()
         self.activations = dict()
@@ -331,6 +395,7 @@ class YOLOV5XAI:
 
             res += mask * max_score
 
+            # print(_)
             # 删除不再使用的变量
             del masked, preds, logits, preds_logits, classHead_output
             # 释放显存
@@ -366,6 +431,13 @@ class YOLOV5XAI:
         """
         saliency_maps = defaultdict(list)
         saliency_map_sum = defaultdict()
+
+        activation_maps = defaultdict(list)
+        activation_map_sum = defaultdict()
+
+        saliency_maps_orig_all = []
+        activation_maps_orig_all = []
+
         class_prob_list = []
         head_num_list = []
         nObj = 0
@@ -410,6 +482,30 @@ class YOLOV5XAI:
                     gradients = self.gradients[classHead]
                     activations = self.activations[classHead]
 
+                    activation_map = activations.detach().sum(1, keepdim=True)
+
+                    # img_w, img_h = input_img.size(3), input_img.size(2)
+                    # mask = generate_mask(image_size=(img_w, img_h),
+                    #                      grid_size=(16, 16),
+                    #                      prob_thresh=0.5)
+                    # masked_img = masked_img(input_img, mask)
+
+                    # # 将处理后的图片移动到 cpu 上并转换为 numpy 数组，调整维度顺序为 (height, width, channels)
+                    # input_img_np = input_img.cpu().squeeze(0).permute(1, 2, 0).numpy()
+                    # # 创建一个新的matplotlib图表
+                    # fig, ax = plt.subplots(1)
+                    # # 显示图像
+                    # ax.imshow(input_img_np)
+                    # # 获取边界框的坐标
+                    # y1, x1, y2, x2 = bbox
+                    # # 创建一个 Rectangle patch
+                    # rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, edgecolor='r', facecolor='none')
+                    # # 将矩形添加到图表中
+                    # ax.add_patch(rect)
+                    # # 显示图像和边界框
+                    # plt.axis('off')
+                    # plt.show()
+
 
                     if self.sel_XAImethod == 'gradcam':
                         saliency_map = ut.gradcam_operation(activations, gradients)
@@ -449,8 +545,14 @@ class YOLOV5XAI:
                         # saliency_map = (weights * activations).sum(1, keepdim=True)
                         # saliency_map = F.relu(saliency_map)
 
-                    nObj = nObj + 1
                     saliency_map_orig = saliency_map
+                    activation_map_orig = activation_map
+
+                    saliency_maps_orig_all.append(saliency_map_orig)
+                    activation_maps_orig_all.append(activation_map_orig)
+
+                    if saliency_map_orig.max().item() != 0:
+                        nObj = nObj + 1
 
                     if not (len(sigma_factors) == 1 and sigma_factors[0] == -1): # bilinear only
                         ## Rescale based on receptive field
@@ -469,35 +571,82 @@ class YOLOV5XAI:
                         #   mapped to the original image
                         mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), jump, start)
 
-                    for sigma_factor in sigma_factors:
+                    for sigma_factor in sigma_factors:                            
                         if sigma_factor == -1:
-                            saliency_map = F.interpolate(saliency_map, size=(h_orig,w_orig), mode='bilinear', align_corners=False)
+                            if saliency_map_orig.max().item() == 0: # empty saliency maps due to invalid gradients at the top neck layers
+                                saliency_map = torch.zeros((1,1,h_orig,w_orig), device=saliency_map.device)
+                            else:
+                                saliency_map = F.interpolate(saliency_map_orig, size=(h_orig,w_orig), mode='bilinear', align_corners=True)
+                            activation_map = F.interpolate(activation_map_orig, size=(h_orig,w_orig), mode='bilinear', align_corners=True)
                         else:
-                            saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
+                            if saliency_map_orig.max().item() == 0:
+                                saliency_map = torch.zeros((1,1,h_orig,w_orig))
+                            else:                            
+                                saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
+                            activation_map = apply_gaussian_kernel(activation_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
 
-                        if self.sel_norm_str == 'norm':
+                        if self.sel_norm_str == 'norm' and saliency_map_orig.max().item() != 0:
                             saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
                             saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
 
-                        if nObj == 1:
+                            activation_map_min, activation_map_max = activation_map.min(), activation_map.max()
+                            activation_map = (activation_map - activation_map_min).div(activation_map_max - activation_map_min).data
+
+                        if sigma_factor not in saliency_map_sum:
                             saliency_map_sum[sigma_factor] = saliency_map
+                            activation_map_sum[sigma_factor] = activation_map
                         else:
                             saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] + saliency_map
+                            activation_map_sum[sigma_factor] = activation_map_sum[sigma_factor] + saliency_map
 
                         # if self.sel_XAImethod == 'odam':
                         saliency_maps[sigma_factor].append(saliency_map.detach().cpu())
+                        activation_maps[sigma_factor].append(activation_map.detach().cpu())
 
             for sigma_factor in sigma_factors:
 
                 if nObj == 0:
                     saliency_map_sum[sigma_factor] = torch.zeros([1, 1, h_orig, w_orig])
                     saliency_maps[sigma_factor].append(torch.zeros([1, 1, h_orig, w_orig]))
+
+                    activation_map_sum[sigma_factor] = torch.zeros([1, 1, h_orig, w_orig])
+                    activation_maps[sigma_factor].append(torch.zeros([1, 1, h_orig, w_orig]))
                 else:
                     saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] / nObj
+                    activation_map_sum[sigma_factor] = activation_map_sum[sigma_factor] / nObj
 
-                saliency_map_sum_min, saliency_map_sum_max = saliency_map_sum[sigma_factor].min(), saliency_map_sum[sigma_factor].max()
-                saliency_map_sum[sigma_factor] = (saliency_map_sum[sigma_factor] - saliency_map_sum_min).div(saliency_map_sum_max - saliency_map_sum_min).data
-                saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor].detach().cpu()
+                # saliency_map_sum_min, saliency_map_sum_max = saliency_map_sum[sigma_factor].min(), saliency_map_sum[sigma_factor].max()
+                # saliency_map_sum[sigma_factor] = (saliency_map_sum[sigma_factor] - saliency_map_sum_min).div(saliency_map_sum_max - saliency_map_sum_min).data
+                # saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor].detach().cpu()
+
+                # activation_map_sum_min, activation_map_sum_max = activation_map_sum[sigma_factor].min(), activation_map_sum[sigma_factor].max()
+                # activation_map_sum[sigma_factor] = (activation_map_sum[sigma_factor] - activation_map_sum_min).div(activation_map_sum_max - activation_map_sum_min).data
+                # activation_map_sum[sigma_factor] = activation_map_sum[sigma_factor].detach().cpu()
+
+            # if self.sel_XAImethod != 'odam':
+            #     #saliency_map_sum = F.relu(saliency_map_sum)
+            #     saliency_map = saliency_map_sum
+            #     # saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+            #     # saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+            #     saliency_map = saliency_map.detach().cpu()
+            #     saliency_maps.append(saliency_map)
+
+
+            # siable save raw act
+            # if preds_logits[0].numel():
+            #     score = pred_logit
+            #     score.backward()
+            # # if logits[0].numel():
+            # #     score = logit[0]
+            # #     score.backward()
+
+            # self.activations[0] = self.activations[0].detach().cpu().numpy()
+            # self.activations[1] = self.activations[1].detach().cpu().numpy()
+            # self.activations[2] = self.activations[2].detach().cpu().numpy()
+            # if self.sel_XAImethod == 'saveRawAllAct':
+            #     raw_data_rec = self.activations.copy()
+            # else:
+            #     raw_data_rec = []
 
             raw_data_rec = []
 
@@ -515,12 +664,17 @@ class YOLOV5XAI:
         torch.cuda.empty_cache()
 
         FrameStack = []
+        # FrameStack = np.empty((len(raw_data_rec),), dtype=np.object)
+        # for i in range(len(raw_data_rec)):
+        #     FrameStack[i] = raw_data_rec[i]
 
         if len(head_num_list) > 0:
             head_num_list = np.squeeze(head_num_list,1).astype(int)
             class_prob_list = torch.cat(class_prob_list).cpu().detach().numpy()
 
-        return saliency_maps, saliency_map_sum, pred_list, class_prob_list, head_num_list, FrameStack
+        return saliency_maps, saliency_map_sum, activation_maps, activation_map_sum,\
+                (saliency_maps_orig_all, activation_maps_orig_all),\
+                pred_list, class_prob_list, head_num_list, FrameStack
 
     def __call__(self, input_img, shape_orig, sigma_factors=[-1,2,4]):
 

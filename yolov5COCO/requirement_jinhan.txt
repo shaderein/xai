@@ -1,0 +1,11 @@
+scikit-image
+scipy
+pandas
+opencv-python
+deep_utils==0.8.15
+GPUtil
+matplotlib
+pyyaml
+seaborn
+openpyxl
+scikit-learn
