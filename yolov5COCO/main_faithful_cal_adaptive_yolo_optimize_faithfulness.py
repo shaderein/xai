@@ -386,14 +386,13 @@ def main(img_path, label_path, model, saliency_method, img_num,
     odam_output_dir = args.output_dir.replace('fullgradcamraw','odam')
     output_path = os.path.join(odam_output_dir,img_name)
     os.makedirs(odam_output_dir, exist_ok=True)
-
-    if not save_visualization:                
-        for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
-            if cls_name[0] in class_names_sel:
-                if i in target_indices_pred:
-                    target_prob.append([class_prob])
-
-    else:
+               
+    for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
+        if cls_name[0] in class_names_sel:
+            if i in target_indices_pred:
+                target_prob.append([class_prob])
+    
+    if save_visualization:
         ### Display
         # Generate whole-image saliency maps as reference        
         all_mask_img = result.copy()
@@ -404,7 +403,6 @@ def main(img_path, label_path, model, saliency_method, img_num,
             if i in target_indices_pred:
                 res_img, heat_map = ut.get_res_img(mask, res_img)
 
-        target_prob = []
         for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
             if cls_name[0] in class_names_sel:
                 if i in target_indices_pred:
@@ -413,8 +411,6 @@ def main(img_path, label_path, model, saliency_method, img_num,
                     
                     # FIXME: check EXP BB selection
                     res_img = ut.put_text_box(target_bbox_GT, "GT BB for EXP", res_img, color=(255,0,0)) / 255
-
-                    target_prob.append([class_prob])
                 else:
                     all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], all_mask_img, color=(0,0,255)) / 255
 
