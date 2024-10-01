@@ -5,7 +5,7 @@ import os,re
 import time
 import argparse
 import numpy as np
-from models.xai_method_optimize_faithfulness import YOLOV5XAI
+from models.xai_method_optimize_faithfulness import YOLOV5XAI, apply_gaussian_kernel
 # from models.eigencam import YOLOV5EigenCAM
 # from models.eigengradcam import YOLOV5EigenGradCAM
 # from models.weightedgradcam import YOLOV5WeightedGradCAM
@@ -263,13 +263,15 @@ def mean_valid_confidence(targets_corr, preds_corr_list, preds_conf_list, thresh
 
 def main(img_path, label_path, model, saliency_method, img_num, 
          class_names_sel,class_names_gt,
-         target_layer_group_name,
-         sigma_factors=[-1]):
+         save_visualization=False):
+    
     gc.collect()
     torch.cuda.empty_cache()
 
     img = cv2.imread(img_path)
+    h_orig, w_orig = img.shape[0],img.shape[1]
     torch_img = model.preprocessing(img[..., ::-1])
+    img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
 
     # Find instance used in experiments
     if args.object=='vehicle':
@@ -287,7 +289,7 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
     tic = time.time()
 
-    masks_all, masks_sum_all, activations_all, activations_sum_all, masks_orig_all, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img,(img.shape[0],img.shape[1]),sigma_factors)
+    masks_orig_all, mapped_locs, adjusted_receptive_field, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img,(h_orig, w_orig))
     print("\n[Raw] total time:", round(time.time() - tic, 4))
 
     saliency_maps_orig_all, activation_maps_orig_all = masks_orig_all
@@ -296,16 +298,14 @@ def main(img_path, label_path, model, saliency_method, img_num,
         "saliency_maps_orig_all" : saliency_maps_orig_all,
         "activation_maps_orig_all" : activation_maps_orig_all,
     }
-    os.makedirs(args.output_dir.replace('gaussian_sigmaFACTOR/fullgradcamraw','raw_masks'), exist_ok=True)
-    torch.save(raw_masks,os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR/fullgradcamraw','raw_masks'),f"{img_path.split('/')[-1].split('.')[0]}.pth"))
+    os.makedirs(args.output_dir.replace('fullgradcamraw','raw_masks'), exist_ok=True)
+    torch.save(raw_masks,os.path.join(args.output_dir.replace('fullgradcamraw','raw_masks'),f"{img_path.split('/')[-1].split('.')[0]}.pth"))
 
     result = torch_img.squeeze(0).mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).detach().cpu().numpy()
     result = result[..., ::-1]  # convert to bgr
-    images = [result]
 
     ### New Images
     result_raw = result
-    images = [img]
     result = img
 
     ### Rescale Boxes
@@ -347,96 +347,54 @@ def main(img_path, label_path, model, saliency_method, img_num,
     if len(target_indices_pred)==0: 
         return True
     
-    for sigma_factor in masks_all:
+    """
+    Rescale orig maps by applying gaussian
+    """
+    sigma_factor=4
 
-        masks = masks_all[sigma_factor]
-        masks_sum = masks_sum_all[sigma_factor]
+    masks = []
+    masks_sum = torch.zeros((1,1,h_orig,w_orig))
+    nObj = 0
+    for saliency_map_orig in saliency_maps_orig_all:
+        if saliency_map_orig.max().item() != 0:
+            nObj = nObj + 1
 
-        masks_orig = masks
-        masks = [masks_sum]
+        if saliency_map_orig.max().item() == 0:
+            saliency_map = torch.zeros((1,1,h_orig,w_orig))
+        else:                            
+            saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
 
-        # FullGradCAM
+        if saliency_method.sel_norm_str == 'norm' and saliency_map_orig.max().item() != 0:
+            saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+            saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
 
-        ### Calculate AI Performance
-        if len(boxes):
-            Vacc = ut.calculate_acc(boxes_rescale_xywh, label_data_corr_xywh)/len(boxes_GT)
-        else:
-            Vacc = 0
+        masks_sum = masks_sum + saliency_map
+        masks.append(saliency_map)
 
-        ### Display
-        for i, mask in enumerate(masks):
-            res_img = result.copy()
-            res_img, heat_map = ut.get_res_img(mask, res_img)
+    if nObj > 0:
+        masks_sum = masks_sum / nObj
+
+    """ODAM"""
+
+    ### Calculate AI Performance
+    if len(boxes): # NOTE: For ODAM only consider the GT bbox and prediced bbox for one specific target
+        Vacc = ut.calculate_acc(boxes_rescale_xywh[target_indices_pred], label_data_corr_xywh[[target_idx_GT]]) # NOTE: only 1 "GT" target
+    else:
+        Vacc = 0
+
+    target_prob = []
+    odam_output_dir = args.output_dir.replace('fullgradcamraw','odam')
+    output_path = os.path.join(odam_output_dir,img_name)
+    os.makedirs(odam_output_dir, exist_ok=True)
+
+    if not save_visualization:                
         for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
             if cls_name[0] in class_names_sel:
-                #bbox, cls_name = boxes[0][i], class_names[0][i]
-                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-                res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], res_img) / 255
+                if i in target_indices_pred:
+                    target_prob.append([class_prob])
 
-        ## Display Ground Truth
-        gt_img = result.copy()
-        gt_img = gt_img / gt_img.max()
-        for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
-            cls_idx = np.int8(cls_idx)
-            if class_names_gt[cls_idx] in class_names_sel:
-                #bbox, cls_name = boxes[0][i], class_names[0][i]
-                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
-                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
-
-        # images.append(gt_img * 255)
-        images = [gt_img * 255]
-        images.append(res_img * 255)
-        final_image = ut.concat_images(images)
-        img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
-        output_path = os.path.join(args.output_dir,img_name)
-        os.makedirs(args.output_dir, exist_ok=True)
-        cv2.imwrite(output_path, final_image)
-
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        masks_ndarray = masks[0].squeeze().detach().cpu().numpy()
-
-        start = time.time()
-        # AI Saliency Map Computation
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel)
-
-        dAUC = mean_valid_confidence(label_data_corr_xyxy, [boxes_rescale_xyxy] + preds_deletion[0], [[prob[0] for prob in obj_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy, preds_insertation[0], preds_insertation[4])
-
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                    # 'masks_ndarray_all': [mask.squeeze().detach().cpu().numpy() for mask in masks_orig],
-                                                    'head_num_list':head_num_list,
-                                                    'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                    'boxes_pred_xywh': boxes_rescale_xywh,
-                                                    'boxes_gt_xywh': label_data_corr_xywh,
-                                                    'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                    'HitRate': Vacc,
-                                                    'preds_deletion': np.array(preds_deletion,dtype='object'),
-                                                    'preds_insertation': np.array(preds_insertation,dtype='object'),
-                                                    'boxes_pred_conf': obj_prob,
-                                                    'boxes_pred_class_names': class_names,
-                                                    'class_names_sel': class_names_sel,
-                                                    'boxes_gt_classes_names': label_data_class_names,
-                                                    'grad_act': raw_data,
-                                                    'target_indices_pred': target_indices_pred,
-                                                    })
-        end = time.time()
-        print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
-
-        # ODAM
-
-        masks = masks_orig
-
-        ### Calculate AI Performance
-        if len(boxes): # NOTE: For ODAM only consider the GT bbox and prediced bbox for one specific target
-            Vacc = ut.calculate_acc(boxes_rescale_xywh[target_indices_pred], label_data_corr_xywh[[target_idx_GT]]) # NOTE: only 1 "GT" target
-        else:
-            Vacc = 0
-
+    else:
         ### Display
-
         # Generate whole-image saliency maps as reference        
         all_mask_img = result.copy()
         all_mask_img, heat_map = ut.get_res_img(masks_sum, all_mask_img)
@@ -486,47 +444,110 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
         images.append(all_mask_img * 255)
         final_image = ut.concat_images(images)
-
-        img_name = split_extension(os.path.split(img_path)[-1], suffix='-res')
-        odam_output_dir = args.output_dir.replace('fullgradcamraw','odam')
-        output_path = os.path.join(odam_output_dir,img_name)
-        os.makedirs(odam_output_dir, exist_ok=True)
         cv2.imwrite(output_path, final_image)
 
-        gc.collect()
-        torch.cuda.empty_cache()
+    gc.collect()
+    torch.cuda.empty_cache()
 
-        if len(target_indices_pred) == 0:
-            masks_ndarray = np.zeros(masks[0].squeeze().detach().cpu().numpy().shape)
-        else: 
-            masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
+    masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
 
-        start = time.time()
-        # AI Saliency Map Computation
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+    start = time.time()
+    # AI Saliency Map Computation
+    preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
 
-        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
+    dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+    iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
 
-        # Saving
-        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                    'head_num_list':head_num_list[target_indices_pred],
-                                                    'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
-                                                    'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
-                                                    'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
-                                                    'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
-                                                    'HitRate': Vacc,
-                                                    'preds_deletion': np.array(preds_deletion,dtype='object'),
-                                                    'preds_insertation': np.array(preds_insertation,dtype='object'),
-                                                    'boxes_pred_conf': target_prob,
-                                                    'boxes_pred_class_names': class_names,
-                                                    'class_names_sel': class_names_sel,
-                                                    'boxes_gt_classes_names': label_data_class_names,
-                                                    'grad_act': raw_data,
-                                                    'target_indices_pred': target_indices_pred,
-                                                    })
-        end = time.time()
-        print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
+    # Saving
+    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                'head_num_list':head_num_list[target_indices_pred],
+                                                'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
+                                                'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
+                                                'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+                                                'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+                                                'HitRate': Vacc,
+                                                'preds_deletion': np.array(preds_deletion,dtype='object'),
+                                                'preds_insertation': np.array(preds_insertation,dtype='object'),
+                                                'boxes_pred_conf': target_prob,
+                                                'boxes_pred_class_names': class_names,
+                                                'class_names_sel': class_names_sel,
+                                                'boxes_gt_classes_names': label_data_class_names,
+                                                'grad_act': raw_data,
+                                                'target_indices_pred': target_indices_pred,
+                                                })
+    end = time.time()
+    print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
+
+    """FullGradCAM"""
+
+    output_path = os.path.join(args.output_dir,img_name)
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    ### Calculate AI Performance
+    if len(boxes):
+        Vacc = ut.calculate_acc(boxes_rescale_xywh, label_data_corr_xywh)/len(boxes_GT)
+    else:
+        Vacc = 0
+
+    if save_visualization:
+
+        ### Display
+        res_img = result.copy()
+        res_img, heat_map = ut.get_res_img(masks_sum, res_img)
+        for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
+            if cls_name[0] in class_names_sel:
+                #bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], res_img) / 255
+
+        ## Display Ground Truth
+        gt_img = result.copy()
+        gt_img = gt_img / gt_img.max()
+        for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
+            cls_idx = np.int8(cls_idx)
+            if class_names_gt[cls_idx] in class_names_sel:
+                #bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
+
+        # images.append(gt_img * 255)
+        images = [gt_img * 255]
+        images.append(res_img * 255)
+        final_image = ut.concat_images(images)
+        cv2.imwrite(output_path, final_image)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    masks_ndarray = masks_sum.squeeze().detach().cpu().numpy()
+
+    start = time.time()
+    # AI Saliency Map Computation
+    preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel)
+
+    dAUC = mean_valid_confidence(label_data_corr_xyxy, [boxes_rescale_xyxy] + preds_deletion[0], [[prob[0] for prob in obj_prob]] + preds_deletion[4]) # include step 0 on intact image
+    iAUC = mean_valid_confidence(label_data_corr_xyxy, preds_insertation[0], preds_insertation[4])
+
+    # Saving
+    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                # 'masks_ndarray_all': [mask.squeeze().detach().cpu().numpy() for mask in masks_orig],
+                                                'head_num_list':head_num_list,
+                                                'boxes_pred_xyxy': boxes_rescale_xyxy,
+                                                'boxes_pred_xywh': boxes_rescale_xywh,
+                                                'boxes_gt_xywh': label_data_corr_xywh,
+                                                'boxes_gt_xyxy': label_data_corr_xyxy,
+                                                'HitRate': Vacc,
+                                                'preds_deletion': np.array(preds_deletion,dtype='object'),
+                                                'preds_insertation': np.array(preds_insertation,dtype='object'),
+                                                'boxes_pred_conf': obj_prob,
+                                                'boxes_pred_class_names': class_names,
+                                                'class_names_sel': class_names_sel,
+                                                'boxes_gt_classes_names': label_data_class_names,
+                                                'grad_act': raw_data,
+                                                'target_indices_pred': target_indices_pred,
+                                                })
+    end = time.time()
+    print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
 
     return False
 
@@ -565,6 +586,7 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 
     device = f"cuda"
+    save_visualization = False
 
     # input_size = (args.img_size, args.img_size)
 
@@ -672,7 +694,7 @@ if __name__ == '__main__':
 
                 failed = main(os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), model, saliency_method, item_img[:-4],
                               class_names_sel,class_names_gt,
-                              target_layer_group_name)
+                              save_visualization)
                 
                 if failed:
                     failed_imgs.append(item_img)

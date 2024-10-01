@@ -142,7 +142,7 @@ def calculate_receptive_field(layer_name, layers, upsample_factor=1):
 
     return receptive_field, jump, start
 
-def map_saliency_to_original_image(saliency_map, original_size, preprocessed_size, 
+def map_saliency_to_original_image(saliency_height, saliency_width, original_size, preprocessed_size, 
                                    jump, start):
     """
     Map saliency map locations to the centers of their receptive fields on the original image.
@@ -157,7 +157,6 @@ def map_saliency_to_original_image(saliency_map, original_size, preprocessed_siz
     Returns:
     - mapped_locs (ndarray): Mapped locations on the original image.
     """
-    saliency_height, saliency_width = saliency_map.shape[2],saliency_map.shape[3]
     original_height, original_width = original_size
     preprocessed_height, preprocessed_width = preprocessed_size
 
@@ -411,12 +410,6 @@ class YOLOV5XAI:
             logit: model output
             preds: The object predictions
         """
-        saliency_maps = defaultdict(list)
-        saliency_map_sum = defaultdict()
-
-        activation_maps = defaultdict(list)
-        activation_map_sum = defaultdict()
-
         saliency_maps_orig_all = []
         activation_maps_orig_all = []
 
@@ -438,6 +431,21 @@ class YOLOV5XAI:
         pred_list.append([])
         pred_list.append([])
         pred_list.append([])
+
+        ## Rescale based on receptive field
+        receptive_field, jump, start = calculate_receptive_field(self.layer_name, self.layers)
+
+        # Adjust the receptive field to account for the input resizing in preprocessing
+        height_ratio = h_orig / h
+        width_ratio = w_orig / w
+        adjusted_receptive_field = receptive_field
+        adjusted_receptive_field[:,0] = receptive_field[:,0] * width_ratio
+        adjusted_receptive_field[:,1] = receptive_field[:,1] * height_ratio
+
+        # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
+        #   mapped to the original image
+        mapped_locs = map_saliency_to_original_image(self.activations[0].shape[2], self.activations[0].shape[3], (h_orig,w_orig), (h,w), jump, start) #DEBUG: find the head always with output (shortest path)
+
         with torch.autograd.set_detect_anomaly(True):
             for pred_logit, logit, bbox, cls, cls_name, obj_prob, class_prob, classHead in zip(preds_logits[0], logits[0], preds[0][0], preds[1][0], preds[2][0], preds[3][0], class_probs, classHead_output):
                 if cls_name in self.sel_classes:
@@ -486,72 +494,11 @@ class YOLOV5XAI:
                     elif self.sel_XAImethod == 'odam':
                         saliency_map = F.relu((gradients * activations).sum(1, keepdim=True))
 
-                    saliency_map_orig = saliency_map
-                    activation_map_orig = activation_map
+                    saliency_map_orig = saliency_map.detach().cpu()
+                    activation_map_orig = activation_map.detach().cpu()
 
                     saliency_maps_orig_all.append(saliency_map_orig)
                     activation_maps_orig_all.append(activation_map_orig)
-
-                    if saliency_map_orig.max().item() != 0:
-                        nObj = nObj + 1
-
-                    if not (len(sigma_factors) == 1 and sigma_factors[0] == -1): # bilinear only
-                        ## Rescale based on receptive field
-                        receptive_field, jump, start = calculate_receptive_field(self.layer_name, self.layers)
-
-                        # Adjust the receptive field to account for the input resizing in preprocessing
-                        height_ratio = h_orig / h
-                        width_ratio = w_orig / w
-                        adjusted_receptive_field = receptive_field
-                        adjusted_receptive_field[:,0] = receptive_field[:,0] * width_ratio
-                        adjusted_receptive_field[:,1] = receptive_field[:,1] * height_ratio
-
-                        # Get a grid of coordinates of the receptive field center of each spatial location of the intermediate saliency map, 
-                        #   mapped to the original image
-                        mapped_locs = map_saliency_to_original_image(saliency_map_orig, (h_orig,w_orig), (h,w), jump, start)
-
-                    for sigma_factor in sigma_factors:                            
-                        if sigma_factor == -1:
-                            if saliency_map_orig.max().item() == 0: # empty saliency maps due to invalid gradients at the top neck layers
-                                saliency_map = torch.zeros((1,1,h_orig,w_orig), device=saliency_map.device)
-                            else:
-                                saliency_map = F.interpolate(saliency_map_orig, size=(h_orig,w_orig), mode='bilinear', align_corners=True)
-                            activation_map = F.interpolate(activation_map_orig, size=(h_orig,w_orig), mode='bilinear', align_corners=True)
-                        else:
-                            if saliency_map_orig.max().item() == 0:
-                                saliency_map = torch.zeros((1,1,h_orig,w_orig))
-                            else:                            
-                                saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
-                            activation_map = apply_gaussian_kernel(activation_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
-
-                        if self.sel_norm_str == 'norm' and saliency_map_orig.max().item() != 0:
-                            saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
-                            saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
-
-                            activation_map_min, activation_map_max = activation_map.min(), activation_map.max()
-                            activation_map = (activation_map - activation_map_min).div(activation_map_max - activation_map_min).data
-
-                        if sigma_factor not in saliency_map_sum:
-                            saliency_map_sum[sigma_factor] = saliency_map
-                            activation_map_sum[sigma_factor] = activation_map
-                        else:
-                            saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] + saliency_map
-                            activation_map_sum[sigma_factor] = activation_map_sum[sigma_factor] + saliency_map
-
-                        saliency_maps[sigma_factor].append(saliency_map.detach().cpu())
-                        activation_maps[sigma_factor].append(activation_map.detach().cpu())
-
-            for sigma_factor in sigma_factors:
-
-                if nObj == 0:
-                    saliency_map_sum[sigma_factor] = torch.zeros([1, 1, h_orig, w_orig])
-                    saliency_maps[sigma_factor].append(torch.zeros([1, 1, h_orig, w_orig]))
-
-                    activation_map_sum[sigma_factor] = torch.zeros([1, 1, h_orig, w_orig])
-                    activation_maps[sigma_factor].append(torch.zeros([1, 1, h_orig, w_orig]))
-                else:
-                    saliency_map_sum[sigma_factor] = saliency_map_sum[sigma_factor] / nObj
-                    activation_map_sum[sigma_factor] = activation_map_sum[sigma_factor] / nObj
 
             raw_data_rec = []
 
@@ -574,10 +521,10 @@ class YOLOV5XAI:
             head_num_list = np.squeeze(head_num_list,1).astype(int)
             class_prob_list = torch.cat(class_prob_list).cpu().detach().numpy()
 
-        return saliency_maps, saliency_map_sum, activation_maps, activation_map_sum,\
-                (saliency_maps_orig_all, activation_maps_orig_all),\
+        return (saliency_maps_orig_all, activation_maps_orig_all),\
+                mapped_locs, adjusted_receptive_field,\
                 pred_list, class_prob_list, head_num_list, FrameStack
 
-    def __call__(self, input_img, shape_orig, sigma_factors=[-1,2,4]):
+    def __call__(self, input_img, shape_orig):
 
-        return self.forward(input_img, shape_orig, sigma_factors)
+        return self.forward(input_img, shape_orig)
