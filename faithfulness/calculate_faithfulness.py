@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+import cv2, torch, pickle
 from scipy import io
 import os, logging, re
 
@@ -135,8 +135,11 @@ def compute_single_condition(root_path):
             "meanConf_insertionAI": meanConf_insertionAI,
             "all_imgs": all_imgs,
         }
-        np.save(os.path.join(root_path, f"{layer_name}.npy"), results)
-        logging.info(f"Layer {layer_name} finished at: {os.path.join(root_path, f'{layer_name}.npy')}")
+
+        pickle.dump(results,open(os.path.join(root_path, f"{layer_name}.pickle"),'wb'))
+        if os.path.exists(os.path.join(root_path, f"{layer_name}.npy")):
+            os.remove(os.path.join(root_path, f"{layer_name}.npy"))
+        logging.info(f"Layer {layer_name} finished at: {os.path.join(root_path, f'{layer_name}.pickle')}")
 
 def xywh2xyxy(p):
     if p.size < 4:
