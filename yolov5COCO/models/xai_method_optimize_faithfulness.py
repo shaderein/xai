@@ -252,14 +252,14 @@ def apply_gaussian_kernel_torch(saliency_map, mapped_locs, receptive_field, orig
 
     return torch.tensor(output)
 
-def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_size, sigma_factor=2):
+def apply_gaussian_kernel(saliency_map, mapped_locs, sigma, original_size):
     """
     Apply Gaussian kernel to the saliency map locations and upsample to the original image size.
     Args:
     - saliency_map (N,C,H,W): N=#proposals for head and N=1 for backone. C=1 (summed over channls in fullgradcam)
     - mapped_locs (N,H,W,2): Mapped locations on the original image.
-    - receptive_field (N,2): Size of the receptive field in x and y dimension
     - original_size (tuple): The size of the original image.
+    - sigmas (N,2): Sigma value at x,y dimension
 
     Returns:
     - output (ndarray): Saliency map upsampled to the original image size.
@@ -272,8 +272,8 @@ def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_s
 
     for n in range(N):
         # debug
-        sigma_x = receptive_field[n, 0] / sigma_factor
-        sigma_y = receptive_field[n, 1] / sigma_factor
+        sigma_x = sigma # TODO: fasterRCNN each sigma for each proposal?
+        sigma_y = sigma
 
         kernel_size_x = math.ceil(sigma_x * 6)
         kernel_size_y = math.ceil(sigma_y * 6)
@@ -309,6 +309,71 @@ def apply_gaussian_kernel(saliency_map, mapped_locs, receptive_field, original_s
                     )
 
     return torch.tensor(output)
+
+def apply_gaussian_kernel_gpu(saliency_map, mapped_locs, sigma, original_size):
+    """
+    Apply Gaussian kernel to the saliency map locations and upsample to the original image size using GPU.
+    Args:
+    - saliency_map (N,C,H,W): N=#proposals for head and N=1 for backbone. C=1 (summed over channels in fullgradcam)
+    - mapped_locs (N,H,W,2): Mapped locations on the original image.
+    - original_size (tuple): The size of the original image.
+    - sigma (float): Sigma value for the Gaussian kernel.
+
+    Returns:
+    - output (torch.Tensor): Saliency map upsampled to the original image size.
+    """
+    mapped_locs = torch.tensor(mapped_locs)
+    N, C, saliency_height, saliency_width = saliency_map.shape
+    original_height, original_width = original_size
+    output = torch.zeros((N, C, original_height, original_width), dtype=torch.float32, device=saliency_map.device)
+
+    # Generate Gaussian kernels on GPU
+    kernel_size_x = int(math.ceil(sigma * 6)) | 1  # Ensure odd size
+    kernel_size_y = int(math.ceil(sigma * 6)) | 1
+
+    # Create the 2D Gaussian kernel using meshgrid and broadcasting
+    x = torch.arange(kernel_size_x, dtype=torch.float32, device=saliency_map.device) - kernel_size_x // 2
+    y = torch.arange(kernel_size_y, dtype=torch.float32, device=saliency_map.device) - kernel_size_y // 2
+    gaussian_x = torch.exp(-0.5 * (x ** 2) / sigma ** 2)
+    gaussian_y = torch.exp(-0.5 * (y ** 2) / sigma ** 2)
+    gaussian_kernel = (gaussian_y[:, None] * gaussian_x[None, :]).unsqueeze(0).unsqueeze(0)
+
+    # Normalize the kernel
+    gaussian_kernel /= gaussian_kernel.sum()
+
+    # Flatten saliency map and corresponding locations
+    flat_saliency_map = saliency_map.view(N, C, -1)
+    center_x = mapped_locs[:, :, :, 0].view(N, -1).long()
+    center_y = mapped_locs[:, :, :, 1].view(N, -1).long()
+
+    # Apply Gaussian kernel for all points at once (vectorized)
+    for n in range(N):
+        valid_mask = (center_x[n] >= 0) & (center_x[n] < original_width) & \
+                     (center_y[n] >= 0) & (center_y[n] < original_height)
+
+        cx = center_x[n][valid_mask]
+        cy = center_y[n][valid_mask]
+        saliency_values = flat_saliency_map[n, 0, valid_mask]
+
+        # Compute region bounds for the Gaussian kernel
+        sx = torch.clamp(cx - kernel_size_x // 2, 0, original_width)
+        ex = torch.clamp(cx + kernel_size_x // 2 + 1, 0, original_width)
+        sy = torch.clamp(cy - kernel_size_y // 2, 0, original_height)
+        ey = torch.clamp(cy + kernel_size_y // 2 + 1, 0, original_height)
+
+        # Determine relative bounds in the Gaussian kernel
+        gsx = torch.clamp(kernel_size_x // 2 - (cx - sx), 0, kernel_size_x)
+        gex = gsx + (ex - sx)
+        gsy = torch.clamp(kernel_size_y // 2 - (cy - sy), 0, kernel_size_y)
+        gey = gsy + (ey - sy)
+
+        # Apply Gaussian kernel across all valid points at once
+        for i in range(len(saliency_values)):
+            output[n, 0, sy[i]:ey[i], sx[i]:ex[i]] += saliency_values[i] * gaussian_kernel[
+                0, 0, gsy[i]:gey[i], gsx[i]:gex[i]
+            ]
+
+    return output
 
 
 class YOLOV5XAI:

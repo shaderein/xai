@@ -130,7 +130,7 @@ def calculate_acc(AIpre_centres, gt_boxs):
             unique_hit_idx_list.append(i)
             true_tot_hits = true_tot_hits + 1
     tot_hits = true_tot_hits
-    print(tot_hits)
+    # print(tot_hits)
     return tot_hits
 
 def scale_coords_new(img1_shape, coords, img0_shape, ratio_pad=None):

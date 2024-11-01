@@ -5,12 +5,12 @@ import os, re, shutil
 
 import cv2
 
-def combine_images(root_dir, target_img_name, ext, sigma):
+def combine_images(root_dir, target_img_name, ext):
 
     model = 'yolov5s'
     title_font_size = 15
 
-    layers = ['model_0_act','model_1_act', 'model_2_cv1_act', 'model_2_cv2_act', 'model_2_m_0_cv1_act', 'model_2_m_0_cv2_act', 'model_2_cv3_act', 'model_3_act', 'model_4_cv1_act', 'model_4_cv2_act', 'model_4_m_0_cv1_act', 'model_4_m_0_cv2_act', 'model_4_m_1_cv1_act', 'model_4_m_1_cv2_act', 'model_4_cv3_act', 'model_5_act', 'model_6_cv1_act', 'model_6_cv2_act', 'model_6_m_0_cv1_act', 'model_6_m_0_cv2_act', 'model_6_m_1_cv1_act', 'model_6_m_1_cv2_act', 'model_6_m_2_cv1_act', 'model_6_m_2_cv2_act', 'model_6_cv3_act', 'model_7_act', 'model_8_cv1_act', 'model_8_cv2_act', 'model_8_m_0_cv1_act', 'model_8_m_0_cv2_act', 'model_8_cv3_act', 'model_9_cv1_act', 'model_9_cv2_act', 'model_10_act', 'model_13_cv1_act', 'model_13_cv2_act', 'model_13_m_0_cv1_act', 'model_13_m_0_cv2_act', 'model_13_cv3_act', 'model_14_act', 'model_17_cv1_act', 'model_17_cv2_act', 'model_17_m_0_cv1_act', 'model_17_m_0_cv2_act', 'model_17_cv3_act']
+    layers = ['model_1_act', 'model_2_cv1_act', 'model_2_cv2_act', 'model_2_m_0_cv1_act', 'model_2_m_0_cv2_act', 'model_2_cv3_act', 'model_3_act', 'model_4_cv1_act', 'model_4_cv2_act', 'model_4_m_0_cv1_act', 'model_4_m_0_cv2_act', 'model_4_m_1_cv1_act', 'model_4_m_1_cv2_act', 'model_4_cv3_act', 'model_5_act', 'model_6_cv1_act', 'model_6_cv2_act', 'model_6_m_0_cv1_act', 'model_6_m_0_cv2_act', 'model_6_m_1_cv1_act', 'model_6_m_1_cv2_act', 'model_6_m_2_cv1_act', 'model_6_m_2_cv2_act', 'model_6_cv3_act', 'model_7_act', 'model_8_cv1_act', 'model_8_cv2_act', 'model_8_m_0_cv1_act', 'model_8_m_0_cv2_act', 'model_8_cv3_act', 'model_9_cv1_act', 'model_9_cv2_act', 'model_10_act', 'model_13_cv1_act', 'model_13_cv2_act', 'model_13_m_0_cv1_act', 'model_13_m_0_cv2_act', 'model_13_cv3_act', 'model_14_act', 'model_17_cv1_act', 'model_17_cv2_act', 'model_17_m_0_cv1_act', 'model_17_m_0_cv2_act', 'model_17_cv3_act']
 
     rows = 11
     cols = 4
@@ -53,7 +53,7 @@ def combine_images(root_dir, target_img_name, ext, sigma):
             fig.delaxes(axes[i, j])
 
     plt.tight_layout()
-    plt.savefig(f"results/visualizations/{condition}_{model}_{root_dir.split('/')[-1]}_{sigma}_{target_img_name}.png")
+    plt.savefig(f"results/visualizations/{condition}_{model}_{root_dir.split('/')[-1]}_{target_img_name}.png")
 
 # root_dir = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/xai_saliency_maps_faster/fullgradcamraw"
 # target_img_name = 'chair_81061'
@@ -66,13 +66,12 @@ def combine_images(root_dir, target_img_name, ext, sigma):
 #     ext = 'jpg'
 #     combine_images(root_dir,target_img_name,ext,sigma)
 
-condition = "perturb_pixel_whole_optimal_sigma"
+condition = "optimize_faithfulness"
 # for sigma in ['bilinear','gaussian_sigma2','gaussian_sigma4']:
-for sigma in ['gaussian_sigma2','gaussian_sigma4']:
-    root_dir = f"/opt/jinhanz/results/{condition}/mscoco/xai_saliency_maps_yolov5s_optimal_{sigma}/fullgradcamraw"
-    target_img_name = 'chair_81061'
-    ext = 'png'
-    combine_images(root_dir,target_img_name,ext,sigma)
+root_dir = f"/opt/jinhanz/results/{condition}/mscoco/xai_saliency_maps_yolov5s/fullgradcamraw"
+target_img_name = 'chair_81061'
+ext = 'png'
+combine_images(root_dir,target_img_name,ext)
 
 # root_dir = "/mnt/h/OneDrive - The University Of Hong Kong/bdd/xai_saliency_maps_same_layer_faster/fullgradcamraw_human"
 # target_img_name = '760'

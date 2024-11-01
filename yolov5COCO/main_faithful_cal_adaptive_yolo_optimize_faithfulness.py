@@ -1,11 +1,11 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import os,re
+import os,re, json
 import time
 import argparse
 import numpy as np
-from models.xai_method_optimize_faithfulness import YOLOV5XAI, apply_gaussian_kernel
+from models.xai_method_optimize_faithfulness import YOLOV5XAI, apply_gaussian_kernel_gpu
 # from models.eigencam import YOLOV5EigenCAM
 # from models.eigengradcam import YOLOV5EigenGradCAM
 # from models.weightedgradcam import YOLOV5WeightedGradCAM
@@ -37,7 +37,13 @@ import torch.utils.data
 from utils.datasets import *
 from utils.utils import *
 
+from collections import defaultdict
 import logging
+logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241008_bisection_optimize_faithfulness_coco_faster_algo.log', 
+                    filemode='a',
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
 import imageio
 
 import pandas as pd
@@ -179,13 +185,6 @@ gc.collect()
 torch.cuda.empty_cache()
 gpu_usage()
 
-logging.basicConfig(filename="./whole_image.log",
-                    filemode='a',
-                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                    datefmt='%H:%M:%S',
-                    level=logging.DEBUG)
-
-
 def area(a, b, threshold=0.5): 
     """
     a = prediction box, b = GT BB
@@ -261,8 +260,34 @@ def mean_valid_confidence(targets_corr, preds_corr_list, preds_conf_list, thresh
 
     return confidence_all_steps.mean()
 
+def rescale_and_apply_gaussian(saliency_maps_orig_all, mapped_locs, h_orig, w_orig, sigma, sel_norm_str):
+    masks = []
+    masks_sum = torch.zeros((1,1,h_orig,w_orig))
+    nObj = 0
+    for saliency_map_orig in saliency_maps_orig_all:
+        if saliency_map_orig.max().item() != 0:
+            nObj = nObj + 1
+
+        if saliency_map_orig.max().item() == 0:
+            saliency_map = torch.zeros((1,1,h_orig,w_orig))
+        else:                            
+            saliency_map = apply_gaussian_kernel_gpu(saliency_map_orig, mapped_locs, sigma, (h_orig,w_orig)).sum(0,keepdim=True)    
+
+        if sel_norm_str == 'norm' and saliency_map_orig.max().item() != 0:
+            saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
+            saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
+
+        masks_sum = masks_sum + saliency_map
+        masks.append(saliency_map)
+
+    if nObj > 0:
+        masks_sum = masks_sum / nObj
+
+    return masks, masks_sum
+
 def main(img_path, label_path, model, saliency_method, img_num, 
-         class_names_sel,class_names_gt,
+         class_names_sel,class_names_gt, args,
+         layer_name,
          save_visualization=False):
     
     gc.collect()
@@ -287,10 +312,7 @@ def main(img_path, label_path, model, saliency_method, img_num,
         bb_selections = pd.read_excel('/home/jinhanz/cs/data/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
         bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
-    tic = time.time()
-
     masks_orig_all, mapped_locs, adjusted_receptive_field, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img,(h_orig, w_orig))
-    print("\n[Raw] total time:", round(time.time() - tic, 4))
 
     saliency_maps_orig_all, activation_maps_orig_all = masks_orig_all
 
@@ -346,35 +368,12 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
     if len(target_indices_pred)==0: 
         return True
+
+    # Empty saliency maps
+    if saliency_maps_orig_all[target_indices_pred[0]].sum() == 0:
+        return True
     
-    """
-    Rescale orig maps by applying gaussian
-    """
-    sigma_factor=4
-
-    masks = []
-    masks_sum = torch.zeros((1,1,h_orig,w_orig))
-    nObj = 0
-    for saliency_map_orig in saliency_maps_orig_all:
-        if saliency_map_orig.max().item() != 0:
-            nObj = nObj + 1
-
-        if saliency_map_orig.max().item() == 0:
-            saliency_map = torch.zeros((1,1,h_orig,w_orig))
-        else:                            
-            saliency_map = apply_gaussian_kernel(saliency_map_orig, mapped_locs, adjusted_receptive_field, (h_orig,w_orig), sigma_factor=sigma_factor).sum(0,keepdim=True)    
-
-        if saliency_method.sel_norm_str == 'norm' and saliency_map_orig.max().item() != 0:
-            saliency_map_min, saliency_map_max = saliency_map.min(), saliency_map.max()
-            saliency_map = (saliency_map - saliency_map_min).div(saliency_map_max - saliency_map_min).data
-
-        masks_sum = masks_sum + saliency_map
-        masks.append(saliency_map)
-
-    if nObj > 0:
-        masks_sum = masks_sum / nObj
-
-    """ODAM"""
+    """Optimize ODAM Faithfulness"""
 
     ### Calculate AI Performance
     if len(boxes): # NOTE: For ODAM only consider the GT bbox and prediced bbox for one specific target
@@ -391,6 +390,140 @@ def main(img_path, label_path, model, saliency_method, img_num,
         if cls_name[0] in class_names_sel:
             if i in target_indices_pred:
                 target_prob.append([class_prob])
+
+    """Bisection Method"""
+    tolerance = 1
+    max_iter = 50
+
+    best_sigma = None
+    best_faithfulness = 0
+
+    sigma_low = 1
+    # exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
+    # sigma_high = max(exp_box_w, exp_box_h) / 4
+    sigma_high = max(h_orig, w_orig) / 4
+
+    record = {
+        "attempts" : defaultdict(dict),
+        "bisection" : defaultdict(dict),
+    }
+
+    start = time.time()
+
+    steps = 10
+    best_step = 0
+    for step in range(steps):
+        sigma = sigma_low + step * ((sigma_high-sigma_low)/(steps-1))
+
+        # NOTE: only calculate target object's map when optimizing ODAM faithfulness for the sake of time
+        masks_attempt, masks_sum_attempt = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma, saliency_method.sel_norm_str)
+        
+        # Calculate faithfulness for both high and mid sigma
+        masks_ndarray = masks_attempt[0].squeeze().detach().cpu().numpy()
+        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4]) # FIXME: edge case return empty preds_deletion or preds_insertation earlier
+        faithfulness = iAUC + (1-dAUC)
+        record['attempts'][step]["sigma"] = sigma
+        record['attempts'][step]["iAUC"] = iAUC
+        record['attempts'][step]["dAUC"] = dAUC
+        record['attempts'][step]["faithfulness"] = faithfulness
+
+        if faithfulness > best_faithfulness:
+            best_faithfulness = faithfulness
+            best_sigma = sigma
+            best_step = step
+
+    # Update lower and upper bound to perform bisection for finer sigma
+    if best_step > 0 and (best_step == steps-1 or record['attempts'][best_step-1]["faithfulness"] >= record['attempts'][best_step+1]["faithfulness"]):
+        best_neighbor = record['attempts'][best_step-1]["sigma"]
+        sigma_low = best_neighbor
+        sigma_high = best_sigma
+    else:
+        best_neighbor = record['attempts'][best_step+1]["sigma"]
+        sigma_low = best_sigma
+        sigma_high = best_neighbor
+    
+    iteration = 0
+    while (sigma_high - sigma_low) > tolerance and iteration < max_iter:
+        sigma_mid = (sigma_low + sigma_high) / 2.0
+
+        record['bisection'][iteration] = {
+                                    "sigma_low":sigma_low,
+                                    "sigma_mid":sigma_mid,
+                                    "sigma_high":sigma_high
+                                }
+        
+        # Apply Gaussian smoothing for both high and mid sigma
+        masks_low, masks_sum_low = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_low, saliency_method.sel_norm_str)
+        masks_high, masks_sum_high = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_high, saliency_method.sel_norm_str)
+        masks_mid, masks_sum_mid = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_mid, saliency_method.sel_norm_str)
+        
+        # Calculate faithfulness for both high and mid sigma
+        masks_ndarray = masks_low[0].squeeze().detach().cpu().numpy()
+        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
+        faithfulness_low = iAUC + (1-dAUC)
+        record['bisection'][iteration]["iAUC_low"] = iAUC
+        record['bisection'][iteration]["dAUC_low"] = dAUC
+        record['bisection'][iteration]["faithfulness_low"] = faithfulness_low
+
+        masks_ndarray = masks_high[0].squeeze().detach().cpu().numpy()
+        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
+        faithfulness_high = iAUC + (1-dAUC)
+        record['bisection'][iteration]["iAUC_high"] = iAUC
+        record['bisection'][iteration]["dAUC_high"] = dAUC
+        record['bisection'][iteration]["faithfulness_high"] = faithfulness_high
+
+        masks_ndarray = masks_mid[0].squeeze().detach().cpu().numpy()
+        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
+        faithfulness_mid = iAUC + (1-dAUC)
+        record['bisection'][iteration]["iAUC_mid"] = iAUC
+        record['bisection'][iteration]["dAUC_mid"] = dAUC
+        record['bisection'][iteration]["faithfulness_mid"] = faithfulness_mid
+
+        # If faithfulness improves, adjust the range accordingly
+        if faithfulness_mid >= faithfulness_high:
+            sigma_high = sigma_mid
+        else:
+            sigma_low = sigma_mid
+            
+        # Keep track of all sigma any ways
+        max_faithfulness_interval = max([faithfulness_low,faithfulness_mid,faithfulness_high])
+        index_of_max = [faithfulness_low,faithfulness_mid,faithfulness_high].index(max_faithfulness_interval)
+
+        if max_faithfulness_interval >= best_faithfulness:
+            best_sigma = [sigma_low,sigma_mid,sigma_high][index_of_max]
+            best_faithfulness = max_faithfulness_interval
+
+        iteration += 1
+
+    end = time.time()
+
+    logging.info(f"CUDA{args.device} ({args.object}) [{layer_name}] {img_name}: best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)} in {steps}+{iteration} steps ({round(end-start,2)}s)")
+
+    # Record
+    record["best_sigma"] = best_sigma
+    record["best_faithfulness"] = best_faithfulness
+    record["search_seconds"] = end-start
+    os.makedirs(args.output_dir.replace('fullgradcamraw','optimization'), exist_ok=True)
+    json.dump(record, open(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json"),'w'))
+
+    # Saving
+    masks, masks_sum = rescale_and_apply_gaussian(saliency_maps_orig_all, mapped_locs, h_orig, w_orig, best_sigma, saliency_method.sel_norm_str)
+    
+    masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
+
+    # AI Saliency Map Computation
+    preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+
+    # dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
+    # iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
     
     if save_visualization:
         ### Display
@@ -445,34 +578,26 @@ def main(img_path, label_path, model, saliency_method, img_num,
     gc.collect()
     torch.cuda.empty_cache()
 
-    masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
-
-    start = time.time()
-    # AI Saliency Map Computation
-    preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
-
-    dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-    iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-
     # Saving
-    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                'head_num_list':head_num_list[target_indices_pred],
-                                                'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
-                                                'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
-                                                'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
-                                                'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
-                                                'HitRate': Vacc,
-                                                'preds_deletion': np.array(preds_deletion,dtype='object'),
-                                                'preds_insertation': np.array(preds_insertation,dtype='object'),
-                                                'boxes_pred_conf': target_prob,
-                                                'boxes_pred_class_names': class_names,
-                                                'class_names_sel': class_names_sel,
-                                                'boxes_gt_classes_names': label_data_class_names,
-                                                'grad_act': raw_data,
-                                                'target_indices_pred': target_indices_pred,
-                                                })
-    end = time.time()
-    print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
+    mdict={'masks_ndarray': masks_ndarray,
+            'sigma': best_sigma,
+            'layer': layer_name,
+            'head_num_list':head_num_list[target_indices_pred],
+            'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
+            'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
+            'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+            'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+            'HitRate': Vacc,
+            'preds_deletion': np.array(preds_deletion,dtype='object'),
+            'preds_insertation': np.array(preds_insertation,dtype='object'),
+            'boxes_pred_conf': target_prob,
+            'boxes_pred_class_names': class_names,
+            'class_names_sel': class_names_sel,
+            'boxes_gt_classes_names': label_data_class_names,
+            'grad_act': raw_data,
+            'target_indices_pred': target_indices_pred,
+            }
+    torch.save(mdict, output_path + '.pth')
 
     """FullGradCAM"""
 
@@ -517,33 +642,33 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
     masks_ndarray = masks_sum.squeeze().detach().cpu().numpy()
 
-    start = time.time()
     # AI Saliency Map Computation
     preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh, class_names_sel)
 
-    dAUC = mean_valid_confidence(label_data_corr_xyxy, [boxes_rescale_xyxy] + preds_deletion[0], [[prob[0] for prob in obj_prob]] + preds_deletion[4]) # include step 0 on intact image
-    iAUC = mean_valid_confidence(label_data_corr_xyxy, preds_insertation[0], preds_insertation[4])
+    # dAUC = mean_valid_confidence(label_data_corr_xyxy, [boxes_rescale_xyxy] + preds_deletion[0], [[prob[0] for prob in obj_prob]] + preds_deletion[4]) # include step 0 on intact image
+    # iAUC = mean_valid_confidence(label_data_corr_xyxy, preds_insertation[0], preds_insertation[4])
 
     # Saving
-    scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                # 'masks_ndarray_all': [mask.squeeze().detach().cpu().numpy() for mask in masks_orig],
-                                                'head_num_list':head_num_list,
-                                                'boxes_pred_xyxy': boxes_rescale_xyxy,
-                                                'boxes_pred_xywh': boxes_rescale_xywh,
-                                                'boxes_gt_xywh': label_data_corr_xywh,
-                                                'boxes_gt_xyxy': label_data_corr_xyxy,
-                                                'HitRate': Vacc,
-                                                'preds_deletion': np.array(preds_deletion,dtype='object'),
-                                                'preds_insertation': np.array(preds_insertation,dtype='object'),
-                                                'boxes_pred_conf': obj_prob,
-                                                'boxes_pred_class_names': class_names,
-                                                'class_names_sel': class_names_sel,
-                                                'boxes_gt_classes_names': label_data_class_names,
-                                                'grad_act': raw_data,
-                                                'target_indices_pred': target_indices_pred,
-                                                })
-    end = time.time()
-    print(f'[{sigma_factor}]: ({round(end-start,4)}s) save mat to: {output_path}')
+    mdict={'masks_ndarray': masks_ndarray,
+            'sigma': best_sigma,
+            'layer': layer_name,
+            'head_num_list':head_num_list,
+            'boxes_pred_xyxy': boxes_rescale_xyxy,
+            'boxes_pred_xywh': boxes_rescale_xywh,
+            'boxes_gt_xywh': label_data_corr_xywh,
+            'boxes_gt_xyxy': label_data_corr_xyxy,
+            'HitRate': Vacc,
+            'preds_deletion': np.array(preds_deletion,dtype='object'),
+            'preds_insertation': np.array(preds_insertation,dtype='object'),
+            'boxes_pred_conf': obj_prob, #FIXME
+            'boxes_pred_class_names': class_names,
+            'class_names_sel': class_names_sel,
+            'boxes_gt_classes_names': label_data_class_names,
+            'grad_act': raw_data,
+            'target_indices_pred': target_indices_pred,
+            }
+
+    torch.save(mdict, output_path + '.pth')
 
     return False
 
@@ -629,76 +754,55 @@ if __name__ == '__main__':
         else:
             flatten_layers[name] = param
 
-    for i, (target_layer_group_name,layer_param) in enumerate(flatten_layers.items()):
-        if target_layer_group_name in ["model_0_act","model_9_m_act1","model_9_m_act2","model_9_m_act3"]: continue
+    img_list = os.listdir(args.img_path)
+    img_list.sort()
+    label_list = os.listdir(args.label_path)
+    label_list.sort()
+    # print(img_list)
+    for item_img, item_label in zip(img_list[int(args.img_start):int(args.img_end)], label_list[int(args.img_start):int(args.img_end)]):
 
-        sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + args.norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
-        args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
-        args.target_layer = [target_layer_group_name,target_layer_group_name,target_layer_group_name]
+        if item_img in skip_images: continue # model failed to detect the target
+        # if item_img not in sampled_images: continue
 
-        # class_names_sel at this point: all possible categories in the experiment (defined in COCO_class.txt)
-        saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
-                                        sel_norm_str=args.norm, sel_classes=class_names_sel, sel_XAImethod=args.method,
-                                        layers=target_layer_group_dict, img_size=input_size,)
+        for i, (target_layer_group_name,layer_param) in enumerate(flatten_layers.items()):
+            if target_layer_group_name in ["model_0_act","model_9_m_act1","model_9_m_act2","model_9_m_act3"]: continue
 
-        if os.path.isdir(args.img_path):
-            img_list = os.listdir(args.img_path)
-            img_list.sort()
-            label_list = os.listdir(args.label_path)
-            label_list.sort()
-            # print(img_list)
-            for item_img, item_label in zip(img_list[int(args.img_start):int(args.img_end)], label_list[int(args.img_start):int(args.img_end)]):
+            sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + args.norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
+            args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
+            args.target_layer = [target_layer_group_name,target_layer_group_name,target_layer_group_name]
 
-                if item_img in skip_images: continue # model failed to detect the target
-                if item_img not in sampled_images: continue
+            if os.path.exists(os.path.join(args.output_dir, f"{split_extension(item_img,suffix='-res')}.pth")):
+                continue
 
-                # if item_img not in ['34.jpg']: continue
+            # class_names_sel at this point: all possible categories in the experiment (defined in COCO_class.txt)
+            saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
+                                            sel_norm_str=args.norm, sel_classes=class_names_sel, sel_XAImethod=args.method,
+                                            layers=target_layer_group_dict, img_size=input_size,)
 
-                # for sigma_factor in sigma_factors:
-                #     if sigma_factor == -1:
-                #         if os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), split_extension(item_img,suffix='-res'))) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('gaussian_sigmaFACTOR','bilinear'), split_extension(item_img,suffix='-res'))) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('gaussian_sigmaFACTOR','bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','act_bilinear'), split_extension(item_img,suffix='-res'))) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('gaussian_sigmaFACTOR','act_bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('gaussian_sigmaFACTOR','act_bilinear'), split_extension(item_img,suffix='-res'))) and\
-                #             os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('gaussian_sigmaFACTOR','act_bilinear'), f"{split_extension(item_img,suffix='-res')}.mat")):
-                #             sigma_factors_to_run.remove(sigma_factor)
-                    
-                #     elif os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','odam').replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace("gaussian","act_gaussian").replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace("gaussian","act_gaussian").replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace("gaussian","act_gaussian").replace('fullgradcamraw','odam').replace('FACTOR',str(sigma_factor)), split_extension(item_img,suffix='-res'))) and\
-                #         os.path.exists(os.path.join(args.output_dir.replace("gaussian","act_gaussian").replace('fullgradcamraw','odam').replace('FACTOR',str(sigma_factor)), f"{split_extension(item_img,suffix='-res')}.mat")):
-                #         sigma_factors_to_run.remove(sigma_factor)
+            # if item_img in ['sink_51598-res.png']: continue
 
-                # if len(sigma_factors_to_run)==0: continue
+            if args.object == 'COCO':
+                class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
+                if class_name not in class_names_gt:
+                    print(f'[WARNING] {item_img} category parsed as {class_name}')
+                    continue
 
-                if args.object == 'COCO':
-                    class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
-                    if class_name not in class_names_gt:
-                        print(f'[WARNING] {item_img} category parsed as {class_name}')
-                        continue
+                class_names_sel = [class_name]
+                saliency_method.sel_classes = class_names_sel # generate saliency maps for specific category
 
-                    class_names_sel = [class_name]
-                    saliency_method.sel_classes = class_names_sel # generate saliency maps for specific category
-
-
+            try:
                 failed = main(os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), model, saliency_method, item_img[:-4],
-                              class_names_sel,class_names_gt,
-                              save_visualization)
+                                class_names_sel,class_names_gt, args,
+                                target_layer_group_name,
+                                save_visualization)
                 
                 if failed:
+                    logging.warning(f"CUDA{args.device} ({args.object}) [{target_layer_group_name}] {item_img}: Skipped due to zero faithfulness")
                     failed_imgs.append(item_img)
+            except:
+                logging.exception(f"CUDA{args.device} ({args.object}) [{target_layer_group_name}] {item_img}: Runtime error")
 
-                # del model, saliency_method
-                gc.collect()
-                torch.cuda.empty_cache()
-                # gpu_usage()
-
-        else:
-            main(args.img_path)
+            # del model, saliency_method
+            gc.collect()
+            torch.cuda.empty_cache()
+            # gpu_usage()
