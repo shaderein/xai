@@ -239,7 +239,7 @@ def get_parser(img_path, run_device, dataset):
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin models")
     parser.add_argument(
         "--config-file",
-        default="/mnt/h/jinhan/xai/fasterRCNN/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        default="/home/jinhanz/cs/xai/fasterRCNN/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -259,9 +259,9 @@ def get_parser(img_path, run_device, dataset):
         help="Minimum score for instance predictions to be shown",
     )
     if dataset == 'mscoco':
-        model_path = "/mnt/h/jinhan/xai/models/model_final_721ade.pkl"
+        model_path = "/home/jinhanz/cs/xai/models/model_final_721ade.pkl"
     else:
-        model_path =  "/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth"
+        model_path =  "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
@@ -467,6 +467,8 @@ def area(a, b, threshold=0.5):
 def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_num,
         dataset, class_names_gt, class_names_sel, sigma_factors,
         sel_norm="norm", sel_method="odam"):
+
+    start = time.time()
     # sel_norm_str = 'norm'
 
 
@@ -500,16 +502,16 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     )
 
     if dataset=='vehicle':
-        bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
+        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
         bb_selections = bb_selections[['image','vehicle_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['image']==img_path.split('/')[-1]] # 1029.jpg
     elif dataset=='human':
-        bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
+        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
         bb_selections = bb_selections[['imgnumber','human_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['imgnumber']==int(img_path.split('/')[-1].replace('.jpg',''))] # 1029.jpg
     elif dataset == 'mscoco':
         # Find instance used in experiments
-        bb_selections = pd.read_excel('/mnt/h/OneDrive - The University Of Hong Kong/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
+        bb_selections = pd.read_excel('/home/jinhanz/cs/data/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
         bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
         # class used in experiments
@@ -528,6 +530,10 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
     masks_all, masks_sum_all, [boxes, _, class_names], class_prob_list, raw_data = saliencyMap_method(inputs)  # cam mask
     
     saliencyMap_method.remove_handlers()
+
+    end = time.time()
+
+    print(f"[Raw] Duration: {int(end - start)}s")
 
     for sigma_factor in masks_all:
 
@@ -695,7 +701,7 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
 
         # images.append(gt_img * 255)
         if dataset == 'mscoco':
-            images = [cv2.imread(f"/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"/home/jinhanz/cs/data/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
             images.append(gt_img * 255)
         else:
             images = [gt_img * 255]
@@ -748,41 +754,22 @@ def main(arguments, img_path, label_path, target_layer_group, model, cfg, img_nu
         #     imageio.mimsave(f'{os.path.join(args.output_dir.replace("FACTOR",str(sigma_factor)),img_name+".insertion")}.gif', imgs_insertion_new)
         # #
 
-        try:
+        scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
+                                                    'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
+                                                    'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
+                                                    'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+                                                    'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+                                                    'HitRate': Vacc,
+                                                    'boxes_pred_conf': obj_prob,
+                                                    'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
+                                                    'preds_deletion': preds_deletion,
+                                                    'preds_insertation': preds_insertation,
+                                                    'class_names_sel': class_names_sel,
+                                                    'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
+                                                    })
 
-            if len(boxes_rescale_xyxy) == 0:
-                scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                        'boxes_pred_xyxy': [],
-                                                        'boxes_pred_xywh': [],
-                                                        'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
-                                                        'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
-                                                        'HitRate': Vacc,
-                                                        'boxes_pred_conf': obj_prob,
-                                                        'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
-                                                        'preds_deletion': preds_deletion,
-                                                        'preds_insertation': preds_insertation,
-                                                        'class_names_sel': class_names_sel,
-                                                        'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
-                                                        })
-            else:
-                scipy.io.savemat(output_path + '.mat', mdict={'masks_ndarray': masks_ndarray,
-                                                            'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
-                                                            'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
-                                                            'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
-                                                            'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
-                                                            'HitRate': Vacc,
-                                                            'boxes_pred_conf': obj_prob,
-                                                            'boxes_pred_class_names': [class_names[idx] for idx in target_indices_pred],
-                                                            'preds_deletion': preds_deletion,
-                                                            'preds_insertation': preds_insertation,
-                                                            'class_names_sel': class_names_sel,
-                                                            'boxes_gt_classes_names': [label_data_class_names[target_idx_GT]],
-                                                            })
-                
-        except:
-            pass
             
-        print(f"Duration: {int(end - start)}s")
+        print(f"[{sigma_factor}] Duration: {int(end - start)}s")
 
         # # # Human Saliency Map Loading
         # human_saliency_map_path = 'E:/HKU/HKU_XAI_Project/XAI_Similarity_1/human_saliency_map_hum_new_1/' + img_num + '_GSmo_30.mat'
@@ -856,30 +843,30 @@ if __name__ == '__main__':
     sel_norm = 'norm'
     sigma_factors = [-1,2,4]
 
-    for category in ["mscoco","vehicle","human"]:
+    for category in ["human"]:
         skip_images = []
 
         if category == "mscoco":
                 class_names_sel = None
-                sel_model = '/mnt/h/jinhan/xai/models/model_final_721ade.pkl'
-                coco_labels_path = "/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/COCO_classes.txt"
+                sel_model = '/home/jinhanz/cs/xai/models/model_final_721ade.pkl'
+                coco_labels_path = "/home/jinhanz/cs/data/mscoco/annotations/COCO_classes.txt"
                 class_names_gt = [line.strip() for line in open(coco_labels_path)]
-                input_main_dir = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/images/resized/DET'   #Veh_id_img
-                input_main_dir_label = '/mnt/h/OneDrive - The University Of Hong Kong/mscoco/annotations/annotations_DET'   #Veh_id_label
-                output_main_dir = '/mnt/h/jinhan/results/mscoco/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam'    # _humanAttention _trainedXAI
+                input_main_dir = '/home/jinhanz/cs/data/mscoco/images/resized/DET'   #Veh_id_img
+                input_main_dir_label = '/home/jinhanz/cs/data/mscoco/annotations/annotations_DET'   #Veh_id_label
+                output_main_dir = '/opt/jinhanz/results/mscoco/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam'    # _humanAttention _trainedXAI
         else:
-            sel_model = "/mnt/h/jinhan/xai/models/FasterRCNN_C4_BDD100K.pth"
+            sel_model = "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
             class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
             if category == "vehicle":
                 class_names_sel = ['car', 'bus', 'truck']
-                input_main_dir = "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/orib_veh_id_task0922"
-                input_main_dir_label = "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/orib_veh_id_task0922_label"
-                output_main_dir = "/mnt/h/jinhan/results/bdd/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam_vehicle"
+                input_main_dir = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922"
+                input_main_dir_label = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922_label"
+                output_main_dir = "/opt/jinhanz/results/bdd/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam_vehicle"
             elif category == "human":
                 class_names_sel = ['person', 'rider']
-                input_main_dir = "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/orib_hum_id_task1009"
-                input_main_dir_label = "/mnt/h/Projects/HKU_XAI_Project/Yolov5self_GradCAM_Pytorch_1/orib_hum_id_task1009_label"
-                output_main_dir = "/mnt/h/jinhan/results/bdd/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam_human"
+                input_main_dir = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009"
+                input_main_dir_label = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009_label"
+                output_main_dir = "/opt/jinhanz/results/bdd/xai_saliency_maps_faster_gaussian_sigmaFACTOR/odam_human"
 
         sel_model_str = sel_model.split('/')[-1][:-3].replace('.','')
 
@@ -901,7 +888,7 @@ if __name__ == '__main__':
             if target_layer_group_name == 'stem.MaxPool' or\
                 target_layer_group_name == 'backbone.stem.conv1': continue
             
-            # if 'backbone' in target_layer_group_name: continue
+            if 'backbone' in target_layer_group_name: continue
             
             sub_dir_name = sel_method + '_' + sel_nms + '_' + sel_prob + '_' + target_layer_group_name + '_' + 'singleScale' + '_' + sel_norm + '_' + sel_model_str
             args.output_dir = os.path.join(output_main_dir, sub_dir_name)
@@ -921,8 +908,10 @@ if __name__ == '__main__':
                         skip_images = ['book_472678.png','clock_164363.png','hair drier_178028.png','hair drier_239041.png', 'kite_405279.png', 'mouse_513688.png', 'toaster_232348.png', 'toaster_453302.png', 'toothbrush_218439.png', 'traffic light_453841.png']
                     elif category == 'vehicle':
                         sampled_images = ['362.jpg','930.jpg','1331.jpg']
+                        skip_images = ['1007.jpg', '1023.jpg', '1028.jpg', '1041.jpg', '1079.jpg', '1108.jpg', '1121.jpg', '1127.jpg', '1170.jpg', '1201.jpg', '1253.jpg', '1258.jpg', '1272.jpg', '134.jpg', '1344.jpg', '1356.jpg', '210.jpg', '297.jpg', '321.jpg', '355.jpg', '383.jpg', '390.jpg', '406.jpg', '425.jpg', '485.jpg', '505.jpg', '52.jpg', '542.jpg', '634.jpg', '648.jpg', '711.jpg', '777.jpg', '784.jpg', '796.jpg', '797.jpg', '838.jpg', '848.jpg', '857.jpg', '899.jpg', '902.jpg', '953.jpg', '967.jpg', '969.jpg', '988.jpg', '99.jpg', '993.jpg']
                     elif category == 'human':
                         sampled_images = ['47.jpg','601.jpg','1304.jpg']
+                        skip_images = ['2334.jpg', '1313.jpg', '1302.jpg', '2186.jpg', '1770.jpg', '1154.jpg', '1663.jpg', '186.jpg', '425.jpg', '875.jpg', '845.jpg', '829.jpg', '388.jpg', '748.jpg', '900.jpg', '1346.jpg', '1803.jpg', '1359.jpg', '1022.jpg', '97.jpg', '2203.jpg', '1066.jpg', '231.jpg', '1097.jpg', '488.jpg', '415.jpg', '2128.jpg', '2008.jpg', '2121.jpg', '2092.jpg', '2271.jpg', '1506.jpg', '1389.jpg', '1954.jpg', '2226.jpg', '670.jpg', '2161.jpg', '1041.jpg', '250.jpg', '1141.jpg', '348.jpg', '1063.jpg', '452.jpg', '601.jpg', '19.jpg', '1746.jpg', '1917.jpg', '1420.jpg', '1817.jpg', '270.jpg', '1398.jpg', '2040.jpg', '11.jpg', '1475.jpg', '897.jpg', '1805.jpg', '997.jpg', '1788.jpg']
 
                     # if item_img not in sampled_images: continue
 
