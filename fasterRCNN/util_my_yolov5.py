@@ -13,6 +13,17 @@ from scipy import ndimage
 # from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage import gaussian_filter
 
+def make_grids(h, w):
+    shifts_x = torch.arange(
+        0, w, 1)
+    shifts_y = torch.arange(
+        0, h, 1)
+    shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x)
+    shift_x = shift_x.reshape(-1)
+    shift_y = shift_y.reshape(-1)
+    grids = torch.stack((shift_x, shift_y), dim=1)
+    return grids
+
 def clip_coords(boxes, img_shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
     boxes[:, 0].clamp_(0, img_shape[1])  # x1
@@ -103,7 +114,7 @@ def calculate_acc(AIpre_centres, gt_boxs):
             unique_hit_idx_list.append(i)
             true_tot_hits = true_tot_hits + 1
     tot_hits = true_tot_hits
-    print(tot_hits)
+    # print(tot_hits)
     return tot_hits
 
 def scale_coords_new(img1_shape, coords, img0_shape, ratio_pad=None):

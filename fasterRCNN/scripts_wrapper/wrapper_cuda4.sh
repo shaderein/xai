@@ -1,11 +1,11 @@
 #!/bin/bash
 export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH
 conda activate faster-3.7
-cd /mnt/h/jinhan/xai/fasterRCNN
+cd /home/jinhanz/cs/xai/fasterRCNN
 
 # Script to run another script, kill it after a fixed duration, and restart it
 
-SCRIPT_PATH="/mnt/h/jinhan/xai/fasterRCNN/multi_layer.sh"
+SCRIPT_PATH="/home/jinhanz/cs/xai/fasterRCNN/multi_layer_cuda4.sh"
 RUN_TIME=1000  # Time in seconds after which to kill the script
 
 while true; do
