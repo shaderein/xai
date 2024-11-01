@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
-import os, re, pickle,tqdm
+import os, re, pickle,tqdm, torch
 import scipy.io
 from collections import defaultdict
 import numpy as np
 import warnings, logging
 warnings.filterwarnings('ignore')
 
-logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/240925_correlation_process_coco_relu_act.log', 
+logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241007_correlation_process_coco_optimize_faithfulness_.log', 
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -69,11 +69,10 @@ layer_name_mapping = ['model_1_act', 'model_2_cv1_act', 'model_2_cv2_act', 'mode
 skip_imgs = ['book_472678',"baseball glove_515982","toothbrush_160666","potted plant_473219","bench_350607","truck_295420","toaster_232348","kite_405279","toothbrush_218439","snowboard_425906","car_227511","traffic light_453841","hair drier_239041","hair drier_178028","toaster_453302","mouse_513688","spoon_88040","scissors_340930","handbag_383842"]
 expected_sample_num = 141
 
-for is_act in ["_act"]:
-    for rescale_method in ['bilinear','gaussian_sigma2','gaussian_sigma4']:
-        if is_act == '' and rescale_method == 'bilinear': continue
-        print(f"{is_act} {rescale_method}")
-        logging.info(f"[{is_act} {rescale_method}] loading AI attention")
+for is_act in ["act"]:
+    for rescale_method in ['bilinear']:
+        # print(f"{is_act} {rescale_method}")
+        # logging.info(f"[{is_act} {rescale_method}] loading AI attention")
 
         """
         AI Attention
@@ -85,8 +84,8 @@ for is_act in ["_act"]:
         }
 
         xai_saliency_path = {
-            "FullGradCAM":f'/opt/jinhanz/results/debug_act/mscoco/xai_saliency_maps_yolov5s{is_act}_{rescale_method}/fullgradcamraw',
-            "ODAM":f'/opt/jinhanz/results/debug_act/mscoco/xai_saliency_maps_yolov5s{is_act}_{rescale_method}/odam',
+            "FullGradCAM":f'/opt/jinhanz/results/optimize_faithfulness/mscoco/activation_maps_yolov5s/fullgradcamraw',
+            "ODAM":f'/opt/jinhanz/results/optimize_faithfulness/mscoco/activation_maps_yolov5s/odam',
         }
 
         # Type, Category, Layer, Image
@@ -99,7 +98,7 @@ for is_act in ["_act"]:
 
             for dir in tqdm.tqdm(os.listdir(path_by_type)):
                 layer_name = None
-                if '.mat' in dir: continue # skip faithfulness data
+                if '.pickle' in dir: continue # skip faithfulness data
                 for l in layer_name_mapping:
                     if l in dir:
                         layer_name = l
@@ -110,16 +109,16 @@ for is_act in ["_act"]:
                 # layer_num = int(re.findall(r"F\d+",dir)[-1].replace('F',''))
 
                 for file in os.listdir(os.path.join(path_by_type,dir)):
-                    if '.mat' not in file: continue
-                    img_idx = file.replace('-res.mat','').replace('-res.png.mat','').replace('-res.jpg.mat','')
+                    if '.pth' not in file: continue
+                    img_idx = file.replace('-res.pth','').replace('-res.png.pth','').replace('-res.jpg.pth','')
                     try:
-                        mat = scipy.io.loadmat(os.path.join(path_by_type,dir,file))
-                        # if mat['masks_ndarray'].sum()==1.5 and mat['masks_ndarray'][0,0]==1 and mat['masks_ndarray'][1,1]==0.5:
-                        #     failed_imgs[type][layer_name].append(img_idx)
-                        #     continue
-                        # elif not np.any(mat['masks_ndarray']):
-                        #     failed_imgs[type][layer_name].append(img_idx)
-                        #     continue
+                        mat = torch.load(os.path.join(path_by_type,dir,file))
+                        if mat['masks_ndarray'].sum()==1.5 and mat['masks_ndarray'][0,0]==1 and mat['masks_ndarray'][1,1]==0.5:
+                            failed_imgs[type][layer_name].append(img_idx)
+                            continue
+                        elif not np.any(mat['masks_ndarray']):
+                            failed_imgs[type][layer_name].append(img_idx)
+                            continue
                         if np.any(np.isnan(mat['masks_ndarray'])):
                             failed_imgs[type][layer_name].append(img_idx)
                             continue
@@ -178,7 +177,9 @@ for is_act in ["_act"]:
                     PCC_all['EXP vs ODAM'][layer][img] = np.corrcoef(xai_saliency_maps['ODAM'][layer][img].flatten(), human_attention['EXP'][img].flatten())[0,1]
                     RMSE_all['EXP vs ODAM'][layer][img] = RMSE(xai_saliency_maps['ODAM'][layer][img].flatten(), human_attention['EXP'][img].flatten())
 
-        pickle.dump(PCC_all, open(f'/home/jinhanz/cs/xai/results/mscoco/240925_yolov5s_relu_act/mscoco_{is_act}{rescale_method}_PCC_all_conv.pickle','wb'))
-        pickle.dump(RMSE_all, open(f'/home/jinhanz/cs/xai/results/mscoco/240925_yolov5s_relu_act/mscoco_{is_act}{rescale_method}_RMSE_all_conv.pickle','wb'))
+        save_dir = f'/home/jinhanz/cs/xai/results/mscoco/241024_optimize_faithfulness_activation_maps_yolov5s'
+        os.makedirs(save_dir,exist_ok=True)
+        pickle.dump(PCC_all, open(os.path.join(save_dir, 'mscoco_PCC_all_conv.pickle'), 'wb'))
+        pickle.dump(RMSE_all, open(os.path.join(save_dir, 'mscoco_RMSE_all_conv.pickle'),'wb'))
 
         logging.info("Finish correlating")

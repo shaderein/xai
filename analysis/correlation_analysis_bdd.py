@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
-import os, re, pickle,tqdm
+import os, re, pickle,tqdm, torch
 import scipy.io
 from collections import defaultdict
 import numpy as np
 import warnings, logging
 warnings.filterwarnings('ignore')
 
-logging.basicConfig(filename='../logs/240918_correlation_process_bdd.log', 
+logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241009_correlation_process_bdd.log', 
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -36,7 +36,7 @@ tnrfont = {'fontname':'Times New Roman'}
 
 alpha = 0.3
 
-for object in ['human']:
+for object in ['vehicle']:
 
     """
     human attention
@@ -73,7 +73,7 @@ for object in ['human']:
     layer_name_mapping = ['model_1_act', 'model_2_cv1_act', 'model_2_cv2_act', 'model_2_m_0_cv1_act', 'model_2_m_0_cv2_act', 'model_2_cv3_act', 'model_3_act', 'model_4_cv1_act', 'model_4_cv2_act', 'model_4_m_0_cv1_act', 'model_4_m_0_cv2_act', 'model_4_m_1_cv1_act', 'model_4_m_1_cv2_act', 'model_4_cv3_act', 'model_5_act', 'model_6_cv1_act', 'model_6_cv2_act', 'model_6_m_0_cv1_act', 'model_6_m_0_cv2_act', 'model_6_m_1_cv1_act', 'model_6_m_1_cv2_act', 'model_6_m_2_cv1_act', 'model_6_m_2_cv2_act', 'model_6_cv3_act', 'model_7_act', 'model_8_cv1_act', 'model_8_cv2_act', 'model_8_m_0_cv1_act', 'model_8_m_0_cv2_act', 'model_8_cv3_act', 'model_9_cv1_act', 'model_9_cv2_act', 'model_10_act', 'model_13_cv1_act', 'model_13_cv2_act', 'model_13_m_0_cv1_act', 'model_13_m_0_cv2_act', 'model_13_cv3_act', 'model_14_act', 'model_17_cv1_act', 'model_17_cv2_act', 'model_17_m_0_cv1_act', 'model_17_m_0_cv2_act', 'model_17_cv3_act']
 
     for is_act in ['']:
-        for rescale_method in ['bilinear','gaussian_sigma2','gaussian_sigma4']:
+        for rescale_method in ['bilinear']:
             print(f"{object} {rescale_method}")
             logging.info(f"[{object} {rescale_method}] loading AI attention")
 
@@ -87,8 +87,8 @@ for object in ['human']:
             }
 
             xai_saliency_path = {
-                "FullGradCAM":f'/opt/jinhanz/results/bdd/xai_saliency_maps_yolov5s{is_act}_{rescale_method}/fullgradcamraw_{object}',
-                "ODAM":f'/opt/jinhanz/results/bdd/xai_saliency_maps_yolov5s{is_act}_{rescale_method}/odam_{object}',
+                "FullGradCAM":f'/opt/jinhanz/results/optimize_faithfulness/bdd/activation_maps_yolov5s/fullgradcamraw_{object}',
+                "ODAM":f'/opt/jinhanz/results/optimize_faithfulness/bdd/activation_maps_yolov5s/odam_{object}',
             }
 
             # Type, Category, Layer, Image
@@ -101,7 +101,7 @@ for object in ['human']:
 
                 for dir in tqdm.tqdm(os.listdir(path_by_type)):
                     layer_name = None
-                    if '.mat' in dir: continue # skip faithfulness data
+                    if '.pickle' in dir: continue # skip faithfulness data
                     for l in layer_name_mapping:
                         if l in dir:
                             layer_name = l
@@ -112,10 +112,10 @@ for object in ['human']:
                     # layer_num = int(re.findall(r"F\d+",dir)[-1].replace('F',''))
 
                     for file in os.listdir(os.path.join(path_by_type,dir)):
-                        if '.mat' not in file: continue
-                        img_idx = file.replace('-res.mat','').replace('-res.png.mat','').replace('-res.jpg.mat','')
+                        if '.pth' not in file: continue
+                        img_idx = file.replace('-res.pth','').replace('-res.png.pth','').replace('-res.jpg.pth','')
                         try:
-                            mat = scipy.io.loadmat(os.path.join(path_by_type,dir,file))
+                            mat = torch.load(os.path.join(path_by_type,dir,file))
                             if mat['masks_ndarray'].sum()==1.5 and mat['masks_ndarray'][0,0]==1 and mat['masks_ndarray'][1,1]==0.5:
                                 failed_imgs[type][layer_name].append(img_idx)
                                 continue
@@ -174,7 +174,9 @@ for object in ['human']:
                         PCC_all['EXP vs ODAM'][layer][img] = np.corrcoef(xai_saliency_maps['ODAM'][layer][img].flatten(), human_attention['EXP'][img].flatten())[0,1]
                         RMSE_all['EXP vs ODAM'][layer][img] = RMSE(xai_saliency_maps['ODAM'][layer][img].flatten(), human_attention['EXP'][img].flatten())
 
-            pickle.dump(PCC_all, open(f'/home/jinhanz/cs/xai/results/bdd/240918_yolov5s/mmn/{object}_{is_act}{rescale_method}_PCC_all_conv.pickle','wb'))
-            pickle.dump(RMSE_all, open(f'/home/jinhanz/cs/xai/results/bdd/240918_yolov5s/mmn/{object}_{is_act}{rescale_method}_RMSE_all_conv.pickle','wb'))
+            save_dir = f'/home/jinhanz/cs/xai/results/bdd/241024_optimize_faithfulness_activation_maps_yolov5s'
+            os.makedirs(save_dir,exist_ok=True)
+            pickle.dump(PCC_all, open(f'{save_dir}/{object}_PCC_all_conv.pickle','wb'))
+            pickle.dump(RMSE_all, open(f'{save_dir}/{object}_RMSE_all_conv.pickle','wb'))
 
             logging.info("Finish correlating")
