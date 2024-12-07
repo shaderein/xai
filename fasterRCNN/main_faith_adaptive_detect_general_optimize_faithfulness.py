@@ -36,8 +36,12 @@ import torch.nn.functional as F
 import math, time
 from collections import defaultdict
 
+import configparser
+path_config = configparser.ConfigParser()
+path_config.read('./config.ini')
+
 import logging
-logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241202_optimize_faithfulness_fasterrcnn_finer_v2.log', 
+logging.basicConfig(filename=f"{path_config.get('Paths','log_dir')}/{path_config.get('Paths','log_file')}",
                     filemode='a',
                     format='%(asctime)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -262,7 +266,7 @@ def get_parser(img_path, run_device, model_path):
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin models")
     parser.add_argument(
         "--config-file",
-        default="/home/jinhanz/cs/xai/fasterRCNN/faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        default="./faster_rcnn_R_50_C4_1x.yaml", #"configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -538,16 +542,16 @@ def main(img_path, label_path, target_layer_group,
 
     # Find instance used in experiments
     if args.object=='vehicle':
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
         bb_selections = bb_selections[['image','vehicle_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['image']==img_path.split('/')[-1]] # 1029.jpg
     elif args.object=='human':
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
         bb_selections = bb_selections[['imgnumber','human_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['imgnumber']==int(img_path.split('/')[-1].replace('.jpg',''))] # 1029.jpg
     elif args.object == 'COCO':
         # Find instance used in experiments
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
         bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
     start = time.time()
@@ -786,9 +790,9 @@ def main(img_path, label_path, target_layer_group,
         
         # images.append(gt_img * 255)
         if args.object == 'COCO':
-            images = [cv2.imread(f"/home/jinhanz/cs/data/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
         else:
-            images = [cv2.imread(f"/home/jinhanz/cs/data/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
         images.append(gt_img * 255)
 
         # no matching prediction and therefore empty saliency maps
@@ -962,9 +966,9 @@ def main(img_path, label_path, target_layer_group,
         
         # images.append(gt_img * 255)
         if args.object == 'COCO':
-            images = [cv2.imread(f"/home/jinhanz/cs/data/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
         else:
-            images = [cv2.imread(f"/home/jinhanz/cs/data/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
         images.append(gt_img * 255)
 
         # no matching prediction and therefore empty saliency maps
@@ -1064,29 +1068,29 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.object == "COCO":
-        args.model_path = '/home/jinhanz/cs/xai/models/model_final_721ade.pkl'
+        args.model_path = f"{path_config.get('Paths','model_dir')}/model_final_721ade.pkl"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/mscoco/xai_saliency_maps_fasterrcnn/fullgradcamraw"
-        args.coco_labels = "/home/jinhanz/cs/data/mscoco/annotations/COCO_classes2.txt"
-        args.img_path = "/home/jinhanz/cs/data/mscoco/images/resized/DET2"
-        args.label_path = "/home/jinhanz/cs/data/mscoco/annotations/annotations_DET2"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/mscoco/xai_saliency_maps_fasterrcnn/fullgradcamraw"
+        args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/DET2"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/annotations_DET2"
 
     elif args.object == "vehicle":
-        args.model_path = "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/FasterRCNN_C4_BDD100K.pth"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/bdd/xai_saliency_maps_fasterrcnn/fullgradcamraw_vehicle"
-        args.img_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922"
-        args.label_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922_label"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_fasterrcnn/fullgradcamraw_vehicle"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922_label"
 
     elif args.object == "human":
-        args.model_path = "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/FasterRCNN_C4_BDD100K.pth"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/bdd/xai_saliency_maps_fasterrcnn/fullgradcamraw_human"
-        args.img_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009"
-        args.label_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009_label"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_fasterrcnn/fullgradcamraw_human"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_label"
 
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
