@@ -37,7 +37,7 @@ import math, time
 from collections import defaultdict
 
 import logging
-logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241111_fasterrcnn_optimize_faithfulness_rpn.log',
+logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241202_optimize_faithfulness_fasterrcnn_finer_v2_rpn.log', 
                     filemode='a',
                     format='%(asctime)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -129,6 +129,9 @@ parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help=
 
 parser.add_argument('--img-start', type=int, default=0)
 parser.add_argument('--img-end', type=int, default=160)
+
+parser.add_argument('--layer-start', type=int, default=0)
+parser.add_argument('--layer-end', type=int, default=51)
 
 gc.collect()
 torch.cuda.empty_cache()
@@ -654,7 +657,7 @@ def main(img_path, label_path, target_layer_group,
             if i in target_indices_pred:
                 target_prob_exp.append([class_prob])
 
-    """Bisection Method"""
+    """Searching the optimzal sigma"""
     if os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json")):
         record = json.load(open(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json"),'r'))
         best_sigma = record['best_sigma']
@@ -662,28 +665,29 @@ def main(img_path, label_path, target_layer_group,
         logging.info(f"CUDA{args.device} ({args.object}) [{args.target_layer}] {img_name}: [Read in saved result] best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)}")
     else:
 
-        tolerance = 1
-        max_iter = 50
-
         best_sigma = None
         best_faithfulness = 0
 
-        sigma_low = 1
-        # exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
-        # sigma_high = max(exp_box_w, exp_box_h) / 4
-        sigma_high = max(height, width) / 4
+        sigma = 1
+        exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
+        sigma_high = min(max(exp_box_w, exp_box_h) / 4, 200)
+        # sigma_high = min(max(height, width) / 4, 200)
 
         record = {
             "attempts" : defaultdict(dict),
-            "bisection" : defaultdict(dict),
+            # "bisection" : defaultdict(dict),
         }
 
         start = time.time()
 
-        steps = 10
+        faithfulness_epsilon = 0.01
+        sigma_precision = 4
+
         best_step = 0
-        for step in range(steps):
-            sigma = sigma_low + step * ((sigma_high-sigma_low)/(steps-1))
+
+        step = 0
+        while sigma < sigma_high:
+            sigma += sigma_precision
 
             # NOTE: only calculate target object's map when optimizing ODAM faithfulness for the sake of time
             masks_attempt, masks_sum_attempt = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, height, width, sigma, saliency_method.sel_norm_str)
@@ -704,78 +708,11 @@ def main(img_path, label_path, target_layer_group,
                 best_sigma = sigma
                 best_step = step
 
-        # Update lower and upper bound to perform bisection for finer sigma
-        if best_step > 0 and (best_step == steps-1 or record['attempts'][best_step-1]["faithfulness"] >= record['attempts'][best_step+1]["faithfulness"]):
-            best_neighbor = record['attempts'][best_step-1]["sigma"]
-            sigma_low = best_neighbor
-            sigma_high = best_sigma
-        else:
-            best_neighbor = record['attempts'][best_step+1]["sigma"]
-            sigma_low = best_sigma
-            sigma_high = best_neighbor
+            step += 1
         
-        iteration = 0
-        while (sigma_high - sigma_low) > tolerance and iteration < max_iter:
-            sigma_mid = (sigma_low + sigma_high) / 2.0
-
-            record['bisection'][iteration] = {
-                                        "sigma_low":sigma_low,
-                                        "sigma_mid":sigma_mid,
-                                        "sigma_high":sigma_high
-                                    }
-            
-            # Apply Gaussian smoothing for both high and mid sigma
-            masks_low, masks_sum_low = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, height, width, sigma_low, saliency_method.sel_norm_str)
-            masks_high, masks_sum_high = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, height, width, sigma_high, saliency_method.sel_norm_str)
-            masks_mid, masks_sum_mid = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, height, width, sigma_mid, saliency_method.sel_norm_str)
-            
-            # Calculate faithfulness for both high and mid sigma
-            masks_ndarray = masks_low[0].squeeze().detach().cpu().numpy()
-            preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = compute_faith(model, img, masks_ndarray,label_data_class, cfg)
-            dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob_exp]] + preds_deletion[4]) # include step 0 on intact image
-            iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-            faithfulness_low = iAUC + (1-dAUC)
-            record['bisection'][iteration]["iAUC_low"] = iAUC
-            record['bisection'][iteration]["dAUC_low"] = dAUC
-            record['bisection'][iteration]["faithfulness_low"] = faithfulness_low
-
-            masks_ndarray = masks_high[0].squeeze().detach().cpu().numpy()
-            preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = compute_faith(model, img, masks_ndarray,label_data_class, cfg)
-            dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob_exp]] + preds_deletion[4]) # include step 0 on intact image
-            iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-            faithfulness_high = iAUC + (1-dAUC)
-            record['bisection'][iteration]["iAUC_high"] = iAUC
-            record['bisection'][iteration]["dAUC_high"] = dAUC
-            record['bisection'][iteration]["faithfulness_high"] = faithfulness_high
-
-            masks_ndarray = masks_mid[0].squeeze().detach().cpu().numpy()
-            preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = compute_faith(model, img, masks_ndarray,label_data_class, cfg)
-            dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob_exp]] + preds_deletion[4]) # include step 0 on intact image
-            iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-            faithfulness_mid = iAUC + (1-dAUC)
-            record['bisection'][iteration]["iAUC_mid"] = iAUC
-            record['bisection'][iteration]["dAUC_mid"] = dAUC
-            record['bisection'][iteration]["faithfulness_mid"] = faithfulness_mid
-
-            # If faithfulness improves, adjust the range accordingly
-            if faithfulness_mid >= faithfulness_high:
-                sigma_high = sigma_mid
-            else:
-                sigma_low = sigma_mid
-                
-            # Keep track of all sigma any ways
-            max_faithfulness_interval = max([faithfulness_low,faithfulness_mid,faithfulness_high])
-            index_of_max = [faithfulness_low,faithfulness_mid,faithfulness_high].index(max_faithfulness_interval)
-
-            if max_faithfulness_interval >= best_faithfulness:
-                best_sigma = [sigma_low,sigma_mid,sigma_high][index_of_max]
-                best_faithfulness = max_faithfulness_interval
-
-            iteration += 1
-
         end = time.time()
 
-        logging.info(f"CUDA{args.device} ({args.object}) [{args.target_layer}] {img_name}: best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)} in {steps}+{iteration} steps ({round(end-start,2)}s)")
+        logging.info(f"CUDA{args.device} ({args.object}) [{args.target_layer}] {img_name}: best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)} in {step} steps ({round(end-start,2)}s)")
 
         # Record
         record["best_sigma"] = best_sigma
@@ -1110,7 +1047,7 @@ if __name__ == '__main__':
         args.model_path = '/home/jinhanz/cs/xai/models/model_final_721ade.pkl'
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/mscoco/rpn_saliency_maps_fasterrcnn/fullgradcamraw"
+        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/mscoco/rpn_saliency_maps_fasterrcnn/fullgradcamraw"
         args.coco_labels = "/home/jinhanz/cs/data/mscoco/annotations/COCO_classes2.txt"
         args.img_path = "/home/jinhanz/cs/data/mscoco/images/resized/DET2"
         args.label_path = "/home/jinhanz/cs/data/mscoco/annotations/annotations_DET2"
@@ -1119,7 +1056,7 @@ if __name__ == '__main__':
         args.model_path = "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/bdd/rpn_saliency_maps_fasterrcnn/fullgradcamraw_vehicle"
+        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/bdd/rpn_saliency_maps_fasterrcnn/fullgradcamraw_vehicle"
         args.img_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922"
         args.label_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922_label"
 
@@ -1127,7 +1064,7 @@ if __name__ == '__main__':
         args.model_path = "/home/jinhanz/cs/xai/models/FasterRCNN_C4_BDD100K.pth"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/bdd/rpn_saliency_maps_fasterrcnn/fullgradcamraw_human"
+        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness_finer/bdd/rpn_saliency_maps_fasterrcnn/fullgradcamraw_human"
         args.img_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009"
         args.label_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009_label"
 
@@ -1188,10 +1125,13 @@ if __name__ == '__main__':
     for item_img, item_label in zip(img_list[int(args.img_start):int(args.img_end)], label_list[int(args.img_start):int(args.img_end)]):
 
         if item_img in skip_images or item_img in failed_imgs: continue # model failed to detect the target
-        if item_img not in sampled_images: continue
+        # if item_img not in sampled_images: continue
 
         for i, (target_layer_group_name,layer_param) in enumerate(target_layer_group_dict.items()):
             # if target_layer_group_name not in ['F15','F16','F17']: continue
+
+            if i < args.layer_start or i >= args.layer_end:
+                continue
 
             if target_layer_group_name == 'stem.MaxPool' or\
                 target_layer_group_name == 'backbone.stem.conv1': continue
