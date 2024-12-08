@@ -5,7 +5,7 @@
 #       Uncomment a "##SBATCH" line (i.e. remove one #) to #SBATCH
 #       means turn a comment to a SLURM option.
 
-#SBATCH --job-name=faster_rpn4                # Slurm job name
+#SBATCH --job-name=4_rpn_van                # Slurm job name
 #SBATCH --time=3-00:00:00                    # Set the maximum runtime
 #SBATCH --partition=gpu-a30                  # Choose partition
 #SBATCH --account=abclab            # Specify project account
@@ -15,7 +15,7 @@
 
 #SBATCH --nodes=1                      # node count
 #SBATCH --ntasks-per-node=1            # number of tasks per node (adjust when using MPI)
-#SBATCH --cpus-per-gpu=32              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
+#SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
 #SBATCH --gpus-per-node=1              # Number of GPUs for the task
 
 # Email notificaitons
