@@ -20,7 +20,7 @@
 
 # Email notificaitons
 
-#SBATCH --mail-user=jinhanzhang@yahoo.com
+#SBATCH --mail-user=shaderein@hotmail.com
 #SBATCH --mail-type=BEGIN,END,FAIL,REQUEUE
 
 
