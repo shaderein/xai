@@ -15,7 +15,7 @@
 
 #SBATCH --nodes=1                      # node count
 #SBATCH --ntasks-per-node=1            # number of tasks per node (adjust when using MPI)
-#SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
+##SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
 #SBATCH --gpus-per-node=1              # Number of GPUs for the task
 
 # Email notificaitons
