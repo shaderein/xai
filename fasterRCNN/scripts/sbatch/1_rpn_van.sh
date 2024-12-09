@@ -15,7 +15,7 @@
 
 #SBATCH --nodes=1                      # node count
 #SBATCH --ntasks-per-node=1            # number of tasks per node (adjust when using MPI)
-##SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
+#SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
 #SBATCH --gpus-per-node=1              # Number of GPUs for the task
 
 # Email notificaitons
@@ -26,7 +26,7 @@
 
 # Setup runtime environment if necessary
 # For example,
-conda init
+eval "$(conda shell.bash hook)"
 conda activate faster-3.7-rpn
 
 # Go to the job submission directory and run your application
@@ -41,7 +41,7 @@ for category in COCO vehicle human; do
 done
 
 ### Run vanilla saliency maps. COCO finished on division server
-conda init
+eval "$(conda shell.bash hook)"
 conda activate faster-3.7
 
 for category in vehicle human; do
