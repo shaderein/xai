@@ -23,9 +23,17 @@
 #SBATCH --mail-user=shaderein@hotmail.com
 #SBATCH --mail-type=BEGIN,END,FAIL,REQUEUE
 
+### Run vanilla saliency maps. COCO finished on division server
+eval "$(conda shell.bash hook)"
+conda activate faster-3.7
 
-# Setup runtime environment if necessary
-# For example,
+for category in vehicle human; do
+
+    python main_faith_adaptive_detect_general_optimize_faithfulness.py --object $category --img-start 0 --img-end 40 --device 0
+
+done
+
+# RPN Saliency Maps
 eval "$(conda shell.bash hook)"
 conda activate faster-3.7-rpn
 
@@ -34,18 +42,8 @@ cd $HOME/jinhan/xai/fasterRCNN
 
 ### Run RPN if unfinished
 
-for category in COCO vehicle human; do
-
-    python main_faith_adaptive_detect_general_optimize_faithfulness_rpn.py --object $category --img-start 0 --img-end 40 --device 0
-
-done
-
-### Run vanilla saliency maps. COCO finished on division server
-eval "$(conda shell.bash hook)"
-conda activate faster-3.7
-
 for category in vehicle human; do
 
-    python main_faith_adaptive_detect_general_optimize_faithfulness.py --object $category --img-start 0 --img-end 40 --device 0
+    python main_faith_adaptive_detect_general_optimize_faithfulness_rpn.py --object $category --img-start 0 --img-end 40 --device 0
 
 done
