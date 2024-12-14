@@ -130,6 +130,9 @@ parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help=
 parser.add_argument('--img-start', type=int, default=0)
 parser.add_argument('--img-end', type=int, default=160)
 
+parser.add_argument('--layer-start', type=int, default=0)
+parser.add_argument('--layer-end', type=int, default=51)
+
 gc.collect()
 torch.cuda.empty_cache()
 gpu_usage()
@@ -971,6 +974,9 @@ if __name__ == '__main__':
 
         for i, (target_layer_group_name,layer_param) in enumerate(target_layer_group_dict.items()):
             # if target_layer_group_name not in ['F15','F16','F17']: continue
+
+            if i < args.layer_start or i >= args.layer_end:
+                continue
 
             if target_layer_group_name == 'stem.MaxPool' or\
                 target_layer_group_name == 'backbone.stem.conv1': continue

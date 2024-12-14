@@ -674,7 +674,7 @@ def main(img_path, label_path, target_layer_group,
 
         sigma = 1
         exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
-        sigma_high = min(max(exp_box_w, exp_box_h) / 4, 200)
+        sigma_high = min(max(exp_box_w, exp_box_h), 200)
         # sigma_high = min(max(height, width) / 4, 200)
 
         record = {
