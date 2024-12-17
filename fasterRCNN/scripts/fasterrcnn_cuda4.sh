@@ -6,7 +6,7 @@ for category in COCO vehicle human; do
 
 while true; do
     # Run your program
-    python main_faith_adaptive_detect_general_optimize_faithfulness.py --object $category --img-start 128 --img-end 160 --device 4
+    python main_faith_adaptive_detect_general_bilinear_rpn.py --object $category --img-start 128 --img-end 160 --device 4
     
     # Check the exit status
     if [ $? -ne 0 ]; then
