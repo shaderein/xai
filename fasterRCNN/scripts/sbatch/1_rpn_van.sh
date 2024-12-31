@@ -30,7 +30,7 @@ conda activate faster-3.7
 # Go to the job submission directory and run your application
 cd $HOME/jinhan/xai/fasterRCNN
 
-for category in vehicle human; do
+for category in COCO; do
 
     python main_faith_adaptive_detect_general_optimize_faithfulness.py --object $category --img-start 0 --img-end 40 --device 0
 
@@ -45,7 +45,7 @@ cd $HOME/jinhan/xai/fasterRCNN
 
 ### Run RPN if unfinished
 
-for category in vehicle human; do
+for category in COCO; do
 
     python main_faith_adaptive_detect_general_optimize_faithfulness_rpn.py --object $category --img-start 0 --img-end 40 --device 0
 
