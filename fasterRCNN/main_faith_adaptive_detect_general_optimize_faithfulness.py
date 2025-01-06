@@ -486,6 +486,7 @@ def bbox_iou(bbox1, bbox2):
     iou = intersection_area / union_area
 
     return iou
+
 def mean_valid_confidence(targets_corr, preds_corr_list, preds_conf_list, threshold=0.5):
     """
     corr: xywh

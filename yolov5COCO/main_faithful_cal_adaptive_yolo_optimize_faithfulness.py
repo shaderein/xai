@@ -38,8 +38,13 @@ from utils.datasets import *
 from utils.utils import *
 
 from collections import defaultdict
+
+import configparser
+path_config = configparser.ConfigParser()
+path_config.read('./config.ini')
+
 import logging
-logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241008_bisection_optimize_faithfulness_coco_faster_algo.log', 
+logging.basicConfig(filename=f"{path_config.get('Paths','log_dir')}/{path_config.get('Paths','log_file')}",
                     filemode='a',
                     format='%(asctime)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -167,19 +172,24 @@ parser.add_argument('--img-size', type=int, default=608, help="input image size"
 #                     help='The layer hierarchical address to which gradcam will applied,'
 #                          ' the names should be separated by underline')
 
-parser.add_argument('--method', type=str, default="gradcam", help='gradcam or eigencam or eigengradcam or weightedgradcam or gradcampp or fullgradcam')
-parser.add_argument('--device', type=str, default='0', help='cuda or cpu')
+parser.add_argument('--method', type=str, default="fullgradcamraw", help='gradcam or eigencam or eigengradcam or weightedgradcam or gradcampp or fullgradcam')
+parser.add_argument('--device', type=str, default='cuda:0', help='cuda or cpu')
 parser.add_argument('--names', type=str, default=None,
                     help='The name of the classes. The default is set to None and is set to coco classes. Provide your custom names as follow: object1,object2,object3')
 parser.add_argument('--label-path', type=str, default=input_main_dir_label, help='input label path')
-
 parser.add_argument('--norm', type=str, default="norm")
-parser.add_argument('--object', type=str, default="vehicle", help='human or vehicle')
+
+parser.add_argument('--object', type=str, default="COCO", help='COCO, human or vehicle')
 parser.add_argument('--prob', type=str, default="class", help='obj, class, objclass')
 parser.add_argument('--coco-labels', type=str, default="COCO_classes.txt", help='path to coco classes list')
 
 parser.add_argument('--img-start', type=int, default=0)
 parser.add_argument('--img-end', type=int, default=160)
+
+parser.add_argument('--layer-start', type=int, default=0)
+parser.add_argument('--layer-end', type=int, default=51)
+
+parser.add_argument('--visualize', action='store_true')
 
 gc.collect()
 torch.cuda.empty_cache()
@@ -300,16 +310,16 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
     # Find instance used in experiments
     if args.object=='vehicle':
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/bdd/labels_mapping/Random_sample_vehicle_procedure_analysis.xlsx','veh_sample_img_condition')
         bb_selections = bb_selections[['image','vehicle_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['image']==img_path.split('/')[-1]] # 1029.jpg
     elif args.object=='human':
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/bdd/labels_mapping/Random_sample_human_procedure_analysis.xlsx','hum_sample_img_condition')
         bb_selections = bb_selections[['imgnumber','human_count_gt','ExpTargetIndex']]
         bb_selection = bb_selections.loc[bb_selections['imgnumber']==int(img_path.split('/')[-1].replace('.jpg',''))] # 1029.jpg
     elif args.object == 'COCO':
         # Find instance used in experiments
-        bb_selections = pd.read_excel('/home/jinhanz/cs/data/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
+        bb_selections = pd.read_excel(f'{path_config.get("Paths", "data_dir")}/mscoco/other/for_eyegaze_GT_infos_size_ratio.xlsx')
         bb_selection = bb_selections.loc[bb_selections['img']==img_path.split('/')[-1].replace('.jpg','')] # horse_382088.png
 
     masks_orig_all, mapped_locs, adjusted_receptive_field, [boxes, _, class_names, obj_prob], class_prob_list, head_num_list, raw_data = saliency_method(torch_img,(h_orig, w_orig))
@@ -382,137 +392,81 @@ def main(img_path, label_path, model, saliency_method, img_num,
         Vacc = 0
 
     target_prob = []
+    target_prob_exp = []
     odam_output_dir = args.output_dir.replace('fullgradcamraw','odam')
     output_path = os.path.join(odam_output_dir,img_name)
     os.makedirs(odam_output_dir, exist_ok=True)
                
     for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
         if cls_name[0] in class_names_sel:
+            target_prob.append([class_prob])
             if i in target_indices_pred:
-                target_prob.append([class_prob])
+                target_prob_exp.append([class_prob])
 
-    """Bisection Method"""
-    tolerance = 1
-    max_iter = 50
+    """Searching the optimzal sigma"""
+    if os.path.exists(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json")):
+        record = json.load(open(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json"),'r'))
+        best_sigma = record['best_sigma']
+        best_faithfulness = record['best_faithfulness']
 
-    best_sigma = None
-    best_faithfulness = 0
-
-    sigma_low = 1
-    # exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
-    # sigma_high = max(exp_box_w, exp_box_h) / 4
-    sigma_high = max(h_orig, w_orig) / 4
-
-    record = {
-        "attempts" : defaultdict(dict),
-        "bisection" : defaultdict(dict),
-    }
-
-    start = time.time()
-
-    steps = 10
-    best_step = 0
-    for step in range(steps):
-        sigma = sigma_low + step * ((sigma_high-sigma_low)/(steps-1))
-
-        # NOTE: only calculate target object's map when optimizing ODAM faithfulness for the sake of time
-        masks_attempt, masks_sum_attempt = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma, saliency_method.sel_norm_str)
-        
-        # Calculate faithfulness for both high and mid sigma
-        masks_ndarray = masks_attempt[0].squeeze().detach().cpu().numpy()
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
-        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4]) # FIXME: edge case return empty preds_deletion or preds_insertation earlier
-        faithfulness = iAUC + (1-dAUC)
-        record['attempts'][step]["sigma"] = sigma
-        record['attempts'][step]["iAUC"] = iAUC
-        record['attempts'][step]["dAUC"] = dAUC
-        record['attempts'][step]["faithfulness"] = faithfulness
-
-        if faithfulness > best_faithfulness:
-            best_faithfulness = faithfulness
-            best_sigma = sigma
-            best_step = step
-
-    # Update lower and upper bound to perform bisection for finer sigma
-    if best_step > 0 and (best_step == steps-1 or record['attempts'][best_step-1]["faithfulness"] >= record['attempts'][best_step+1]["faithfulness"]):
-        best_neighbor = record['attempts'][best_step-1]["sigma"]
-        sigma_low = best_neighbor
-        sigma_high = best_sigma
+        logging.info(f"CUDA{args.device} ({args.object}) [{args.target_layer}] {img_name}: [Read in saved result] best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)}")
     else:
-        best_neighbor = record['attempts'][best_step+1]["sigma"]
-        sigma_low = best_sigma
-        sigma_high = best_neighbor
-    
-    iteration = 0
-    while (sigma_high - sigma_low) > tolerance and iteration < max_iter:
-        sigma_mid = (sigma_low + sigma_high) / 2.0
 
-        record['bisection'][iteration] = {
-                                    "sigma_low":sigma_low,
-                                    "sigma_mid":sigma_mid,
-                                    "sigma_high":sigma_high
-                                }
-        
-        # Apply Gaussian smoothing for both high and mid sigma
-        masks_low, masks_sum_low = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_low, saliency_method.sel_norm_str)
-        masks_high, masks_sum_high = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_high, saliency_method.sel_norm_str)
-        masks_mid, masks_sum_mid = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma_mid, saliency_method.sel_norm_str)
-        
-        # Calculate faithfulness for both high and mid sigma
-        masks_ndarray = masks_low[0].squeeze().detach().cpu().numpy()
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
-        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-        faithfulness_low = iAUC + (1-dAUC)
-        record['bisection'][iteration]["iAUC_low"] = iAUC
-        record['bisection'][iteration]["dAUC_low"] = dAUC
-        record['bisection'][iteration]["faithfulness_low"] = faithfulness_low
+        best_sigma = None
+        best_faithfulness = 0
 
-        masks_ndarray = masks_high[0].squeeze().detach().cpu().numpy()
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
-        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-        faithfulness_high = iAUC + (1-dAUC)
-        record['bisection'][iteration]["iAUC_high"] = iAUC
-        record['bisection'][iteration]["dAUC_high"] = dAUC
-        record['bisection'][iteration]["faithfulness_high"] = faithfulness_high
+        sigma = 1
+        exp_box_w, exp_box_h = boxes_rescale_xywh[target_indices_pred][0][2],boxes_rescale_xywh[target_indices_pred][0][3]
+        sigma_high = min(max(exp_box_w, exp_box_h), 200)
+        # sigma_high = min(max(height, width) / 4, 200)
 
-        masks_ndarray = masks_mid[0].squeeze().detach().cpu().numpy()
-        preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
-        dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob]] + preds_deletion[4]) # include step 0 on intact image
-        iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4])
-        faithfulness_mid = iAUC + (1-dAUC)
-        record['bisection'][iteration]["iAUC_mid"] = iAUC
-        record['bisection'][iteration]["dAUC_mid"] = dAUC
-        record['bisection'][iteration]["faithfulness_mid"] = faithfulness_mid
+        record = {
+            "attempts" : defaultdict(dict),
+            # "bisection" : defaultdict(dict),
+        }
 
-        # If faithfulness improves, adjust the range accordingly
-        if faithfulness_mid >= faithfulness_high:
-            sigma_high = sigma_mid
-        else:
-            sigma_low = sigma_mid
+        start = time.time()
+
+        faithfulness_epsilon = 0.01
+        sigma_precision = 4
+
+        best_step = 0
+
+        step = 0
+        while sigma < sigma_high:
+            sigma += sigma_precision
+
+            # NOTE: only calculate target object's map when optimizing ODAM faithfulness for the sake of time
+            masks_attempt, masks_sum_attempt = rescale_and_apply_gaussian([saliency_maps_orig_all[target_indices_pred[0]]], mapped_locs, h_orig, w_orig, sigma, saliency_method.sel_norm_str)
             
-        # Keep track of all sigma any ways
-        max_faithfulness_interval = max([faithfulness_low,faithfulness_mid,faithfulness_high])
-        index_of_max = [faithfulness_low,faithfulness_mid,faithfulness_high].index(max_faithfulness_interval)
+            # Calculate faithfulness for both high and mid sigma
+            masks_ndarray = masks_attempt[0].squeeze().detach().cpu().numpy()
+            preds_deletion, preds_insertation, _, imgs_deletion, imgs_insertion = ut.compute_faith(model, img, masks_ndarray, label_data_corr_xywh[[target_idx_GT]], class_names_sel)
+            dAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], [boxes_rescale_xyxy[target_indices_pred]] + preds_deletion[0], [[prob[0] for prob in target_prob_exp]] + preds_deletion[4]) # include step 0 on intact image
+            iAUC = mean_valid_confidence(label_data_corr_xyxy[[target_idx_GT]], preds_insertation[0], preds_insertation[4]) # FIXME: edge case return empty preds_deletion or preds_insertation earlier
+            faithfulness = iAUC + (1-dAUC)
+            record['attempts'][step]["sigma"] = sigma
+            record['attempts'][step]["iAUC"] = iAUC
+            record['attempts'][step]["dAUC"] = dAUC
+            record['attempts'][step]["faithfulness"] = faithfulness
 
-        if max_faithfulness_interval >= best_faithfulness:
-            best_sigma = [sigma_low,sigma_mid,sigma_high][index_of_max]
-            best_faithfulness = max_faithfulness_interval
+            if faithfulness > best_faithfulness:
+                best_faithfulness = faithfulness
+                best_sigma = sigma
+                best_step = step
 
-        iteration += 1
+            step += 1
+        
+        end = time.time()
 
-    end = time.time()
+        logging.info(f"CUDA{args.device} ({args.object}) [{layer_name}] {img_name}: best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)} in {step} steps ({round(end-start,2)}s)")
 
-    logging.info(f"CUDA{args.device} ({args.object}) [{layer_name}] {img_name}: best faithfulness={round(best_faithfulness,3)} at sigma={round(best_sigma,3)} in {steps}+{iteration} steps ({round(end-start,2)}s)")
-
-    # Record
-    record["best_sigma"] = best_sigma
-    record["best_faithfulness"] = best_faithfulness
-    record["search_seconds"] = end-start
-    os.makedirs(args.output_dir.replace('fullgradcamraw','optimization'), exist_ok=True)
-    json.dump(record, open(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json"),'w'))
+        # Record
+        record["best_sigma"] = best_sigma
+        record["best_faithfulness"] = best_faithfulness
+        record["search_seconds"] = end-start
+        os.makedirs(args.output_dir.replace('fullgradcamraw','optimization'), exist_ok=True)
+        json.dump(record, open(os.path.join(args.output_dir.replace('fullgradcamraw','optimization'),f"{img_path.split('/')[-1].split('.')[0]}.json"),'w'))
 
     # Saving
     masks, masks_sum = rescale_and_apply_gaussian(saliency_maps_orig_all, mapped_locs, h_orig, w_orig, best_sigma, saliency_method.sel_norm_str)
@@ -560,9 +514,9 @@ def main(img_path, label_path, model, saliency_method, img_num,
         
         # images.append(gt_img * 255)
         if args.object == 'COCO':
-            images = [cv2.imread(f"/home/jinhanz/cs/data/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
         else:
-            images = [cv2.imread(f"/home/jinhanz/cs/data/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
         images.append(gt_img * 255)
 
         # no matching prediction and therefore empty saliency maps
@@ -574,6 +528,17 @@ def main(img_path, label_path, model, saliency_method, img_num,
         images.append(all_mask_img * 255)
         final_image = ut.concat_images(images)
         cv2.imwrite(output_path, final_image)
+
+        # compress gif
+        # downscaled_ratio = 0.4
+        # saved_size = [int(w_orig * downscaled_ratio),
+        #             int(h_orig * downscaled_ratio)
+        #             ]
+        # saliency_preview = [cv2.resize((res_img * 255).astype('uint8')[...,::-1], saved_size) for i in range(6)]
+        # imgs_deletion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_deletion]
+        # imgs_insertion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_insertion]
+        # imageio.mimsave(f'{os.path.join(odam_output_dir,img_name+".deletion")}.gif', imgs_deletion_new, duraion=500)
+        # imageio.mimsave(f'{os.path.join(odam_output_dir,img_name+".insertion")}.gif', imgs_insertion_new, duraion=500)
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -590,7 +555,7 @@ def main(img_path, label_path, model, saliency_method, img_num,
             'HitRate': Vacc,
             'preds_deletion': np.array(preds_deletion,dtype='object'),
             'preds_insertation': np.array(preds_insertation,dtype='object'),
-            'boxes_pred_conf': target_prob,
+            'boxes_pred_conf': target_prob_exp,
             'boxes_pred_class_names': class_names,
             'class_names_sel': class_names_sel,
             'boxes_gt_classes_names': label_data_class_names,
@@ -648,6 +613,17 @@ def main(img_path, label_path, model, saliency_method, img_num,
     # dAUC = mean_valid_confidence(label_data_corr_xyxy, [boxes_rescale_xyxy] + preds_deletion[0], [[prob[0] for prob in obj_prob]] + preds_deletion[4]) # include step 0 on intact image
     # iAUC = mean_valid_confidence(label_data_corr_xyxy, preds_insertation[0], preds_insertation[4])
 
+    # compress gif
+    # downscaled_ratio = 0.4
+    # saved_size = [int(w_orig * downscaled_ratio),
+    #               int(h_orig * downscaled_ratio)
+    #             ]
+    # saliency_preview = [cv2.resize((res_img * 255).astype('uint8')[...,::-1], saved_size) for i in range(6)]
+    # imgs_deletion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_deletion]
+    # imgs_insertion_new = saliency_preview + [cv2.resize(img_orig, saved_size) for img_orig in imgs_insertion]
+    # imageio.mimsave(f'{os.path.join(args.output_dir,img_name+".deletion")}.gif', imgs_deletion_new, duraion=500)
+    # imageio.mimsave(f'{os.path.join(args.output_dir,img_name+".insertion")}.gif', imgs_insertion_new, duraion=500)
+
     # Saving
     mdict={'masks_ndarray': masks_ndarray,
             'sigma': best_sigma,
@@ -660,7 +636,147 @@ def main(img_path, label_path, model, saliency_method, img_num,
             'HitRate': Vacc,
             'preds_deletion': np.array(preds_deletion,dtype='object'),
             'preds_insertation': np.array(preds_insertation,dtype='object'),
-            'boxes_pred_conf': obj_prob, #FIXME
+            'boxes_pred_conf': target_prob,
+            'boxes_pred_class_names': class_names,
+            'class_names_sel': class_names_sel,
+            'boxes_gt_classes_names': label_data_class_names,
+            'grad_act': raw_data,
+            'target_indices_pred': target_indices_pred,
+            }
+
+    torch.save(mdict, output_path + '.pth')
+
+    """Activation Maps ODAM"""
+
+    odam_output_dir = args.output_dir.replace('xai_saliency_maps','activation_maps').replace('fullgradcamraw','odam')
+    output_path = os.path.join(odam_output_dir,img_name)
+    os.makedirs(odam_output_dir, exist_ok=True)
+    masks, masks_sum = rescale_and_apply_gaussian(activation_maps_orig_all, mapped_locs, h_orig, w_orig, best_sigma, saliency_method.sel_norm_str)
+    
+    masks_ndarray = masks[target_indices_pred[0]].squeeze().detach().cpu().numpy()
+    
+    if save_visualization:
+        ### Display
+        # Generate whole-image saliency maps as reference        
+        all_mask_img = result.copy()
+        all_mask_img, heat_map = ut.get_res_img(masks_sum, all_mask_img)
+
+        res_img = result.copy()
+        for i, mask in enumerate(masks):
+            if i in target_indices_pred:
+                res_img, heat_map = ut.get_res_img(mask, res_img)
+
+        for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
+            if cls_name[0] in class_names_sel:
+                if i in target_indices_pred:
+                    res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], res_img) / 255
+                    all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], all_mask_img) / 255
+                    
+                    res_img = ut.put_text_box(target_bbox_GT, "GT BB for EXP", res_img, color=(255,0,0)) / 255
+                else:
+                    all_mask_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], all_mask_img, color=(0,0,255)) / 255
+
+        ## Display Ground Truth
+        gt_img = result.copy()
+        gt_img = gt_img / gt_img.max()
+        for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
+            cls_idx = np.int8(cls_idx)
+            if class_names_gt[cls_idx] in class_names_sel:
+                if i==target_idx_GT:
+                    gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img,color=(0,255,0)) / 255
+                else:
+                    gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img,color=(0,0,255)) / 255
+        
+        # images.append(gt_img * 255)
+        if args.object == 'COCO':
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/EXP/{img_path.split('/')[-1]}")]
+        else:
+            images = [cv2.imread(f"{path_config.get('Paths','data_dir')}/bdd/{args.object}_exp/{img_path.split('/')[-1]}")]
+        images.append(gt_img * 255)
+
+        # no matching prediction and therefore empty saliency maps
+        if len(target_indices_pred) == 0:
+            images.append(res_img) # original image
+        else:
+            images.append(res_img * 255)
+
+        images.append(all_mask_img * 255)
+        final_image = ut.concat_images(images)
+        cv2.imwrite(output_path, final_image)
+
+    # Saving
+    mdict={'masks_ndarray': masks_ndarray,
+            'sigma': best_sigma,
+            'layer': layer_name,
+            'head_num_list':head_num_list[target_indices_pred],
+            'boxes_pred_xyxy': boxes_rescale_xyxy[target_indices_pred],
+            'boxes_pred_xywh': boxes_rescale_xywh[target_indices_pred],
+            'boxes_gt_xywh': label_data_corr_xywh[[target_idx_GT]],
+            'boxes_gt_xyxy': label_data_corr_xyxy[[target_idx_GT]],
+            'HitRate': Vacc,
+            'boxes_pred_conf': target_prob_exp,
+            'boxes_pred_class_names': class_names,
+            'class_names_sel': class_names_sel,
+            'boxes_gt_classes_names': label_data_class_names,
+            'grad_act': raw_data,
+            'target_indices_pred': target_indices_pred,
+            }
+    torch.save(mdict, output_path + '.pth')
+
+    """Activation Maps FullGradCAM"""
+
+    output_path = os.path.join(args.output_dir,img_name).replace('xai_saliency_maps','activation_maps')
+    os.makedirs(args.output_dir.replace('xai_saliency_maps','activation_maps'), exist_ok=True)
+
+    ### Calculate AI Performance
+    if len(boxes):
+        Vacc = ut.calculate_acc(boxes_rescale_xywh, label_data_corr_xywh)/len(boxes_GT)
+    else:
+        Vacc = 0
+
+    if save_visualization:
+
+        ### Display
+        res_img = result.copy()
+        res_img, heat_map = ut.get_res_img(masks_sum, res_img)
+        for i, (bbox, cls_name, obj_logit, class_prob, head_num) in enumerate(zip(boxes, class_names, obj_prob, class_prob_list, head_num_list)):
+            if cls_name[0] in class_names_sel:
+                #bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                res_img = ut.put_text_box(bbox[0], cls_name[0] + ": " + str(obj_logit[0]*100)[:2] + ", " + str(class_prob*100)[:2] + ", " + str(head_num)[:1], res_img) / 255
+
+        ## Display Ground Truth
+        gt_img = result.copy()
+        gt_img = gt_img / gt_img.max()
+        for i, (bbox, cls_idx) in enumerate(zip(boxes_GT, label_data_class)):
+            cls_idx = np.int8(cls_idx)
+            if class_names_gt[cls_idx] in class_names_sel:
+                #bbox, cls_name = boxes[0][i], class_names[0][i]
+                # res_img = put_text_box(bbox, cls_name + ": " + str(obj_logit), res_img) / 255
+                gt_img = ut.put_text_box(bbox[0], class_names_gt[cls_idx], gt_img) / 255
+
+        # images.append(gt_img * 255)
+        images = [gt_img * 255]
+        images.append(res_img * 255)
+        final_image = ut.concat_images(images)
+        cv2.imwrite(output_path, final_image)
+
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    masks_ndarray = masks_sum.squeeze().detach().cpu().numpy()
+
+    # Saving
+    mdict={'masks_ndarray': masks_ndarray,
+            'sigma': best_sigma,
+            'layer': layer_name,
+            'head_num_list':head_num_list,
+            'boxes_pred_xyxy': boxes_rescale_xyxy,
+            'boxes_pred_xywh': boxes_rescale_xywh,
+            'boxes_gt_xywh': label_data_corr_xywh,
+            'boxes_gt_xyxy': label_data_corr_xyxy,
+            'HitRate': Vacc,
+            'boxes_pred_conf': target_prob,
             'boxes_pred_class_names': class_names,
             'class_names_sel': class_names_sel,
             'boxes_gt_classes_names': label_data_class_names,
@@ -672,47 +788,41 @@ def main(img_path, label_path, model, saliency_method, img_num,
 
     return False
 
-
 if __name__ == '__main__':
 
     args = parser.parse_args()
 
     if args.object == "COCO":
-        args.model_path = "/home/jinhanz/cs/xai/models/yolov5s_COCOPretrained.pt"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_COCOPretrained.pt"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/mscoco/xai_saliency_maps_yolov5s/fullgradcamraw"
-        args.coco_labels = "/home/jinhanz/cs/data/mscoco/annotations/COCO_classes2.txt"
-        args.img_path = "/home/jinhanz/cs/data/mscoco/images/resized/DET2"
-        args.label_path = "/home/jinhanz/cs/data/mscoco/annotations/annotations_DET2"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/mscoco/xai_saliency_maps_yolov5s/fullgradcamraw"
+        args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/DET2"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/annotations_DET2"
 
     elif args.object == "vehicle":
-        args.model_path = "/home/jinhanz/cs/xai/models/yolov5s_bdd_300epoch_240628_best.pt"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_bdd_300epoch_240628_best.pt"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_vehicle"
-        args.img_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922"
-        args.label_path = "/home/jinhanz/cs/data/bdd/orib_veh_id_task0922_label"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_vehicle"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922_label"
 
     elif args.object == "human":
-        args.model_path = "/home/jinhanz/cs/xai/models/yolov5s_bdd_300epoch_240628_best.pt"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_bdd_300epoch_240628_best.pt"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = "/opt/jinhanz/results/optimize_faithfulness/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_human"
-        args.img_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009"
-        args.label_path = "/home/jinhanz/cs/data/bdd/orib_hum_id_task1009_label"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_human"
+        args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_label"
 
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 
     device = f"cuda"
-    save_visualization = False
-
-    # input_size = (args.img_size, args.img_size)
-
-    print(f'[INFO] {args}')
-    print('[INFO] Loading the model')
+    save_visualization = args.visualize
 
     failed_imgs = []
 
@@ -741,7 +851,6 @@ if __name__ == '__main__':
         class_names_gt = [line.strip() for line in open(args.coco_labels)]
     else:        
         class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
-
         
     model = YOLOV5TorchObjectDetector(args.model_path, sel_nms, args.prob, device, img_size=input_size,
                                       names=None if args.names is None else args.names.strip().split(","))
@@ -761,12 +870,14 @@ if __name__ == '__main__':
     # print(img_list)
     for item_img, item_label in zip(img_list[int(args.img_start):int(args.img_end)], label_list[int(args.img_start):int(args.img_end)]):
 
-        if item_img in skip_images: continue # model failed to detect the target
-        # if item_img not in sampled_images: continue
+        if item_img in skip_images or item_img in failed_imgs: continue # model failed to detect the target
+        if item_img not in sampled_images: continue
 
         for i, (target_layer_group_name,layer_param) in enumerate(flatten_layers.items()):
-            if target_layer_group_name in ["model_0_act","model_9_m_act1","model_9_m_act2","model_9_m_act3"]: continue
+            if i < args.layer_start or i >= args.layer_end:
+                continue
 
+            if target_layer_group_name in ["model_0_act","model_9_m_act1","model_9_m_act2","model_9_m_act3"]: continue
             sub_dir_name = args.method + '_' + args.object + '_' + sel_nms + '_' + args.prob + '_' + target_layer_group_name + '_' + sel_faith + '_' + args.norm + '_' + args.model_path.split('/')[-1][:-3] + '_' + '1'
             args.output_dir = os.path.join(args.output_main_dir, sub_dir_name)
             args.target_layer = [target_layer_group_name,target_layer_group_name,target_layer_group_name]
@@ -774,21 +885,17 @@ if __name__ == '__main__':
             if os.path.exists(os.path.join(args.output_dir, f"{split_extension(item_img,suffix='-res')}.pth")):
                 continue
 
-            # class_names_sel at this point: all possible categories in the experiment (defined in COCO_class.txt)
-            saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
-                                            sel_norm_str=args.norm, sel_classes=class_names_sel, sel_XAImethod=args.method,
-                                            layers=target_layer_group_dict, img_size=input_size,)
-
-            # if item_img in ['sink_51598-res.png']: continue
-
             if args.object == 'COCO':
                 class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
                 if class_name not in class_names_gt:
-                    print(f'[WARNING] {item_img} category parsed as {class_name}')
+                    logging.warning(f'{item_img} category parsed as {class_name}')
                     continue
 
                 class_names_sel = [class_name]
-                saliency_method.sel_classes = class_names_sel # generate saliency maps for specific category
+
+            saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
+                                            sel_norm_str=args.norm, sel_classes=class_names_sel, sel_XAImethod=args.method,
+                                            layers=target_layer_group_dict, img_size=input_size,)
 
             try:
                 failed = main(os.path.join(args.img_path, item_img), os.path.join(args.label_path, item_label), model, saliency_method, item_img[:-4],
@@ -802,7 +909,5 @@ if __name__ == '__main__':
             except:
                 logging.exception(f"CUDA{args.device} ({args.object}) [{target_layer_group_name}] {item_img}: Runtime error")
 
-            # del model, saliency_method
             gc.collect()
             torch.cuda.empty_cache()
-            # gpu_usage()
