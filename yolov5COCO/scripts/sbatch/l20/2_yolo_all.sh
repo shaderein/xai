@@ -5,7 +5,7 @@
 #       Uncomment a "##SBATCH" line (i.e. remove one #) to #SBATCH
 #       means turn a comment to a SLURM option.
 
-#SBATCH --job-name=1_yolo_all                # Slurm job name
+#SBATCH --job-name=2_yolo_all                # Slurm job name
 #SBATCH --time=3-00:00:00                    # Set the maximum runtime
 #SBATCH --partition=gpu-l20                  # Choose partition
 #SBATCH --account=abclab            # Specify project account
