@@ -871,7 +871,7 @@ if __name__ == '__main__':
     for item_img, item_label in zip(img_list[int(args.img_start):int(args.img_end)], label_list[int(args.img_start):int(args.img_end)]):
 
         if item_img in skip_images or item_img in failed_imgs: continue # model failed to detect the target
-        if item_img not in sampled_images: continue
+        # if item_img not in sampled_images: continue
 
         for i, (target_layer_group_name,layer_param) in enumerate(flatten_layers.items()):
             if i < args.layer_start or i >= args.layer_end:
