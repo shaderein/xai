@@ -821,10 +821,7 @@ if __name__ == '__main__':
             args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009"
             args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_label"
 
-        import os
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-
+        print(f"CUDA_VISIBLE_DEVICES: {os.getenv('CUDA_VISIBLE_DEVICES')}")
         device = f"cuda"
         save_visualization = args.visualize
 
