@@ -13,10 +13,9 @@
 
 # Resource allocation 
 
-#SBATCH --nodes=2                      # node count
-#SBATCH --ntasks-per-node=4            # number of tasks per node (adjust when using MPI)
-#SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
-#SBATCH --gpus-per-node=4              # Number of GPUs for the task
+#SBATCH --ntasks=8                           # Total number of tasks
+#SBATCH --cpus-per-task=8                    # 8 CPU cores per task
+#SBATCH --gpus-per-task=1 
 
 # Email notificaitons
 
@@ -30,13 +29,13 @@ conda activate xai-3.8
 # Go to the job submission directory and run your application
 cd $HOME/jinhan/xai/yolov5COCO
 
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 90 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 90 --img-end 100 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 110 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 110 --img-end 120 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 130 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 130 --img-end 140 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 140 --img-end 150 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 150 --img-end 160
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 90 --device=0&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 90 --img-end 100 --device=1&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 110 --device=2&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 110 --img-end 120 --device=3&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 130 --device=4&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 130 --img-end 140 --device=5&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 140 --img-end 150 --device=6&
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 150 --img-end 160 --device=7
 
 wait

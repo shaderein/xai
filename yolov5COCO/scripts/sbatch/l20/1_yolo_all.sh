@@ -13,10 +13,9 @@
 
 # Resource allocation 
 
-#SBATCH --nodes=1                      # node count
-#SBATCH --ntasks-per-node=4            # number of tasks per node (adjust when using MPI)
-#SBATCH --cpus-per-gpu=16              # cpu-cores per task (>1 if multi-threaded tasks, adjust when using OMP)
-#SBATCH --gpus-per-node=4              # Number of GPUs for the task
+#SBATCH --ntasks=4                           # Total number of tasks
+#SBATCH --cpus-per-task=8                    # 8 CPU cores per task
+#SBATCH --gpus-per-task=1 
 
 # Email notificaitons
 
@@ -30,9 +29,9 @@ conda activate xai-3.8
 # Go to the job submission directory and run your application
 cd $HOME/jinhan/xai/yolov5COCO
 
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 0 --img-end 20 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 20 --img-end 40 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 40 --img-end 60 &
-srun --ntasks=1 --gpus-per-task=1 --cpus-per-gpu=16 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 0 --img-end 20 --device=0 &
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 20 --img-end 40 --device=1 &
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 40 --img-end 60 --device=2 &
+srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80 --device=3
 
 wait
