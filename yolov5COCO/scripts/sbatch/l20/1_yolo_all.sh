@@ -32,7 +32,7 @@ cd $HOME/jinhan/xai/yolov5COCO
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 0 --img-end 20 &
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 20 --img-end 40 &
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 40 --img-end 60 &
-srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80 &
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 100 &
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 120 &
 srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 140 &
