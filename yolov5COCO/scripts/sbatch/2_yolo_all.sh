@@ -29,13 +29,13 @@ conda activate xai-3.8
 # Go to the job submission directory and run your application
 cd $HOME/jinhan/xai/yolov5COCO
 
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 90&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 90 --img-end 100&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 110&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 110 --img-end 120&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 130&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 130 --img-end 140&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 140 --img-end 150&
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 150 --img-end 160
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 90&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 90 --img-end 100&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 110&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 110 --img-end 120&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 130&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 130 --img-end 140&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 140 --img-end 150&
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 150 --img-end 160
 
 wait

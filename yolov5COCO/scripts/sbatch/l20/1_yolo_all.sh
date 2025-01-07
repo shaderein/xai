@@ -13,7 +13,7 @@
 
 # Resource allocation 
 
-#SBATCH --ntasks=4                           # Total number of tasks
+#SBATCH --ntasks=8                           # Total number of tasks
 #SBATCH --cpus-per-task=8                    # 8 CPU cores per task
 #SBATCH --gpus-per-task=1 
 
@@ -29,9 +29,13 @@ conda activate xai-3.8
 # Go to the job submission directory and run your application
 cd $HOME/jinhan/xai/yolov5COCO
 
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 0 --img-end 20 &
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 20 --img-end 40 &
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 40 --img-end 60 &
-srun python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 0 --img-end 20 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 20 --img-end 40 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 40 --img-end 60 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 60 --img-end 80
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 80 --img-end 100 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 100 --img-end 120 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 120 --img-end 140 &
+srun --ntasks=1 python main_faithful_cal_adaptive_yolo_optimize_faithfulness_all.py --img-start 140 --img-end 160
 
 wait
