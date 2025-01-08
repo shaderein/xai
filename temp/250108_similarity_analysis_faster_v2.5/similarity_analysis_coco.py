@@ -6,7 +6,7 @@ import numpy as np
 import warnings, logging
 warnings.filterwarnings('ignore')
 
-logging.basicConfig(filename='/home/jinhan/xai/logs/250105_fasterrcnn_correlation_process_coco_optimize_faithfulness_.log', 
+logging.basicConfig(filename='/home/yyzheng/jinhan//xai/logs/250105_fasterrcnn_correlation_process_coco_optimize_faithfulness_.log', 
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -45,9 +45,9 @@ human attention
 """
 
 human_attention_path = {
-    "DET":'/home/jinhan/data/mscoco/human_attention/240107_DET_excluded_resized/attention_maps',
-    "EXP":'/home/jinhan/data/mscoco/human_attention/231222_EXP_excluded_cleaned_resized/attention_maps',
-    "PV":'/home/jinhan/data/mscoco/human_attention/231221_PV_resized/attention_maps',
+    "DET":'/home/yyzheng/jinhan//data/mscoco/human_attention/240107_DET_excluded_resized/attention_maps',
+    "EXP":'/home/yyzheng/jinhan//data/mscoco/human_attention/231222_EXP_excluded_cleaned_resized/attention_maps',
+    "PV":'/home/yyzheng/jinhan//data/mscoco/human_attention/231221_PV_resized/attention_maps',
 }
 
 # Attention Type, Image Idex
@@ -184,7 +184,7 @@ for rescale_method in ['optimize_faithfulness_finer_v2.5','bilinear']:
 
         for method, func in similarity_methods.items():
 
-            save_dir = f'/home/jinhan/xai/results/mscoco/250105_{rescale_method}_{is_act}_maps_fasterrcnn'
+            save_dir = f'/home/yyzheng/jinhan//xai/results/mscoco/250105_{rescale_method}_{is_act}_maps_fasterrcnn'
             save_path = os.path.join(save_dir, f'mscoco_{method}_all_conv.pickle')
 
             if os.path.exists(save_path): continue

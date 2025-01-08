@@ -6,7 +6,7 @@ import numpy as np
 import warnings, logging
 warnings.filterwarnings('ignore')
 
-logging.basicConfig(filename='/home/jinhan/xai/logs/250105_fasterrcnn_correlation_process_bdd.log', 
+logging.basicConfig(filename='/home/yyzheng/jinhan//xai/logs/250105_fasterrcnn_correlation_process_bdd.log', 
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -44,14 +44,14 @@ for object in ['vehicle','human']:
     if object == 'vehicle':
         skip_imgs = ['1007', '1023', '1028', '1041', '1079', '1108', '1121', '1127', '1170', '1201', '1253', '1258', '1272', '134', '1344', '1356', '210', '297', '321', '355', '383', '390', '406', '425', '485', '505', '52', '542', '634', '648', '711', '777', '784', '796', '797', '838', '848', '857', '899', '902', '953', '967', '969', '988', '99', '993']
         human_attention_path = {
-                "DET":'/home/jinhan/data/bdd/human_attention/240107 Veh DET/whole_image',
-                "EXP":'/home/jinhan/data/bdd/human_attention/240918 Veh EXP/human_saliency_map',
+                "DET":'/home/yyzheng/jinhan//data/bdd/human_attention/240107 Veh DET/whole_image',
+                "EXP":'/home/yyzheng/jinhan//data/bdd/human_attention/240918 Veh EXP/human_saliency_map',
             }
     elif object == 'human':
         skip_imgs = ['2334', '1313', '1302', '2186', '1770', '1154', '1663', '186', '425', '875', '845', '829', '388', '748', '900', '1346', '1803', '1359', '1022', '97', '2203', '1066', '231', '1097', '488', '415', '2128', '2008', '2121', '2092', '2271', '1506', '1389', '1954', '2226', '670', '2161', '1041', '250', '1141', '348', '1063', '452', '601', '19', '1746', '1917', '1420', '1817', '270', '1398', '2040', '11', '1475', '897', '1805', '997', '1788']
         human_attention_path = {
-            "DET":'/home/jinhan/data/bdd/human_attention/240107 Hum DET/whole_image',
-            "EXP":'/home/jinhan/data/bdd/human_attention/240918 Hum EXP/human_saliency_map',
+            "DET":'/home/yyzheng/jinhan//data/bdd/human_attention/240107 Hum DET/whole_image',
+            "EXP":'/home/yyzheng/jinhan//data/bdd/human_attention/240918 Hum EXP/human_saliency_map',
         }
 
 
@@ -190,7 +190,7 @@ for object in ['vehicle','human']:
 
             for method, func in similarity_methods.items():
 
-                save_dir = f'/home/jinhan/xai/results/bdd/250105_{rescale_method}_{is_act}_maps_fasterrcnn'
+                save_dir = f'/home/yyzheng/jinhan//xai/results/bdd/250105_{rescale_method}_{is_act}_maps_fasterrcnn'
                 save_path = f'{save_dir}/{object}_{method}_all_conv.pickle'
 
                 if os.path.exists(save_path): continue
