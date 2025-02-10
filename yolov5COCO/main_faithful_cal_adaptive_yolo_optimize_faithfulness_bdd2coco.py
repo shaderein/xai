@@ -41,7 +41,7 @@ from collections import defaultdict
 
 import configparser
 path_config = configparser.ConfigParser()
-path_config.read('./config.ini')
+path_config.read('./config_bdd2coco.ini')
 
 import logging
 logging.basicConfig(filename=f"{path_config.get('Paths','log_dir')}/{path_config.get('Paths','log_file')}",
@@ -792,30 +792,23 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.object == "COCO":
+    if args.object == "vehicle":
         args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_COCOPretrained.pt"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/mscoco/xai_saliency_maps_yolov5s/fullgradcamraw"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd2coco/xai_saliency_maps_yolov5s/fullgradcamraw_vehicle"
         args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
-        args.img_path = f"{path_config.get('Paths','data_dir')}/mscoco/images/resized/DET2"
-        args.label_path = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/annotations_DET2"
-
-    elif args.object == "vehicle":
-        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_bdd_300epoch_240628_best.pt"
-        args.method = "fullgradcamraw"
-        args.prob = "class"
-        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_vehicle"
         args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922"
-        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922_label"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922_mscoco_label"
 
     elif args.object == "human":
-        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_bdd_300epoch_240628_best.pt"
+        args.model_path = f"{path_config.get('Paths','model_dir')}/yolov5s_COCOPretrained.pt"
         args.method = "fullgradcamraw"
         args.prob = "class"
-        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd/xai_saliency_maps_yolov5s/fullgradcamraw_human"
+        args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd2coco/xai_saliency_maps_yolov5s/fullgradcamraw_human"
+        args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
         args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009"
-        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_label"
+        args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_mscoco_label"
 
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -826,31 +819,22 @@ if __name__ == '__main__':
 
     failed_imgs = []
 
-    if args.object == 'COCO':
-        input_size = (640, 640)
-        sampled_images = ['chair_81061.png','elephant_97230.png','giraffe_287545.png'] # 'chair_81061.png',
-        skip_images = ['book_472678.png',"baseball glove_515982.png","toothbrush_160666.png","potted plant_473219.png","bench_350607.png","truck_295420.png","toaster_232348.png","kite_405279.png","toothbrush_218439.png","snowboard_425906.png","car_227511.png","traffic light_453841.png","hair drier_239041.png","hair drier_178028.png","toaster_453302.png","mouse_513688.png","spoon_88040.png","scissors_340930.png","handbag_383842.png"]
-    elif args.object == 'vehicle':
+    if args.object == 'vehicle':
         input_size = (608, 608)
         sampled_images = ['362.jpg','930.jpg','117.jpg']
-        skip_images = ["178.jpg", "54.jpg", "452.jpg", "478.jpg", "629.jpg", "758.jpg", "856.jpg",'1007.jpg', '1028.jpg', '1041.jpg', '1065.jpg', '1100.jpg', '1149.jpg', '1236.jpg', '1258.jpg', '1272.jpg', '1331.jpg', '1356.jpg', '210.jpg', '222.jpg', '3.jpg', '390.jpg', '431.jpg', '485.jpg', '505.jpg', '52.jpg', '559.jpg', '585.jpg', '634.jpg', '648.jpg', '670.jpg', '715.jpg', '784.jpg', '797.jpg', '803.jpg', '833.jpg', '848.jpg', '867.jpg', '899.jpg', '914.jpg', '940.jpg', '980.jpg', '993.jpg','1121.jpg', '1127.jpg', '1170.jpg', '1365.jpg', '321.jpg', '425.jpg', '542.jpg', '610.jpg', '896.jpg', '902.jpg', '953.jpg', '967.jpg']
+        skip_images = [] # ["178.jpg", "54.jpg", "452.jpg", "478.jpg", "629.jpg", "758.jpg", "856.jpg",'1007.jpg', '1028.jpg', '1041.jpg', '1065.jpg', '1100.jpg', '1149.jpg', '1236.jpg', '1258.jpg', '1272.jpg', '1331.jpg', '1356.jpg', '210.jpg', '222.jpg', '3.jpg', '390.jpg', '431.jpg', '485.jpg', '505.jpg', '52.jpg', '559.jpg', '585.jpg', '634.jpg', '648.jpg', '670.jpg', '715.jpg', '784.jpg', '797.jpg', '803.jpg', '833.jpg', '848.jpg', '867.jpg', '899.jpg', '914.jpg', '940.jpg', '980.jpg', '993.jpg','1121.jpg', '1127.jpg', '1170.jpg', '1365.jpg', '321.jpg', '425.jpg', '542.jpg', '610.jpg', '896.jpg', '902.jpg', '953.jpg', '967.jpg']
     elif args.object == 'human':
         input_size = (608, 608)
         sampled_images = ['47.jpg','601.jpg','1304.jpg']
-        skip_images = ['1022.jpg', '1041.jpg', '1053.jpg', '1063.jpg', '1066.jpg', '1097.jpg', '11.jpg', '1141.jpg', '1142.jpg', '1154.jpg', '1227.jpg', '1228.jpg', '1273.jpg', '1293.jpg', '1302.jpg', '1313.jpg', '1346.jpg', '1359.jpg', '1398.jpg', '1420.jpg', '1430.jpg', '1475.jpg', '1506.jpg', '152.jpg', '1538.jpg', '1553.jpg', '1624.jpg', '1663.jpg', '1664.jpg', '1746.jpg', '1770.jpg', '1788.jpg', '1803.jpg', '1805.jpg', '1817.jpg', '1852.jpg', '186.jpg', '1863.jpg', '1893.jpg', '19.jpg', '1917.jpg', '1954.jpg', '2008.jpg', '2040.jpg', '2087.jpg', '2092.jpg', '2108.jpg', '2121.jpg', '2128.jpg', '2141.jpg', '2161.jpg', '2186.jpg', '2203.jpg', '2219.jpg', '2226.jpg', '2262.jpg', '2270.jpg', '2271.jpg', '2279.jpg', '231.jpg', '2312.jpg', '2327.jpg', '2334.jpg', '2457.jpg', '250.jpg', '286.jpg', '348.jpg', '388.jpg', '391.jpg', '415.jpg', '422.jpg', '425.jpg', '452.jpg', '47.jpg', '640.jpg', '608.jpg', '670.jpg', '683.jpg', '748.jpg', '757.jpg', '805.jpg', '808.jpg', '829.jpg', '845.jpg', '85.jpg', '875.jpg', '897.jpg', '900.jpg', '928.jpg', '962.jpg', '97.jpg', '997.jpg']
+        skip_images = [] # ['1022.jpg', '1041.jpg', '1053.jpg', '1063.jpg', '1066.jpg', '1097.jpg', '11.jpg', '1141.jpg', '1142.jpg', '1154.jpg', '1227.jpg', '1228.jpg', '1273.jpg', '1293.jpg', '1302.jpg', '1313.jpg', '1346.jpg', '1359.jpg', '1398.jpg', '1420.jpg', '1430.jpg', '1475.jpg', '1506.jpg', '152.jpg', '1538.jpg', '1553.jpg', '1624.jpg', '1663.jpg', '1664.jpg', '1746.jpg', '1770.jpg', '1788.jpg', '1803.jpg', '1805.jpg', '1817.jpg', '1852.jpg', '186.jpg', '1863.jpg', '1893.jpg', '19.jpg', '1917.jpg', '1954.jpg', '2008.jpg', '2040.jpg', '2087.jpg', '2092.jpg', '2108.jpg', '2121.jpg', '2128.jpg', '2141.jpg', '2161.jpg', '2186.jpg', '2203.jpg', '2219.jpg', '2226.jpg', '2262.jpg', '2270.jpg', '2271.jpg', '2279.jpg', '231.jpg', '2312.jpg', '2327.jpg', '2334.jpg', '2457.jpg', '250.jpg', '286.jpg', '348.jpg', '388.jpg', '391.jpg', '415.jpg', '422.jpg', '425.jpg', '452.jpg', '47.jpg', '640.jpg', '608.jpg', '670.jpg', '683.jpg', '748.jpg', '757.jpg', '805.jpg', '808.jpg', '829.jpg', '845.jpg', '85.jpg', '875.jpg', '897.jpg', '900.jpg', '928.jpg', '962.jpg', '97.jpg', '997.jpg']
 
     # default vehicle
     class_names_sel = ['car', 'bus', 'truck']
     # args.model_path = 'yolov5sbdd100k300epoch.pt'
     if args.object=='human':
-        class_names_sel = ['person', 'rider']
-    elif args.object=='COCO':
-        class_names_sel = [line.strip() for line in open(args.coco_labels)] #FIXME: For specific category only
+        class_names_sel = ['person']
 
-    if args.object == 'COCO':
-        class_names_gt = [line.strip() for line in open(args.coco_labels)]
-    else:        
-        class_names_gt = ['person', 'rider', 'car', 'bus', 'truck']
+    class_names_gt = [line.strip() for line in open(args.coco_labels)]
         
     model = YOLOV5TorchObjectDetector(args.model_path, sel_nms, args.prob, device, img_size=input_size,
                                       names=None if args.names is None else args.names.strip().split(","))
@@ -884,14 +868,6 @@ if __name__ == '__main__':
 
             if os.path.exists(os.path.join(args.output_dir, f"{split_extension(item_img,suffix='-res')}.pth")):
                 continue
-
-            if args.object == 'COCO':
-                class_name = re.sub(r"_\d+\.(jpg|png)",'',item_img).replace('_',' ')
-                if class_name not in class_names_gt:
-                    logging.warning(f'{item_img} category parsed as {class_name}')
-                    continue
-
-                class_names_sel = [class_name]
 
             saliency_method = YOLOV5XAI(model=model, layer_names=args.target_layer, sel_prob_str=args.prob,
                                             sel_norm_str=args.norm, sel_classes=class_names_sel, sel_XAImethod=args.method,

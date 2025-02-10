@@ -408,6 +408,9 @@ class GradCAM:
         pred_list.append([])
         pred_list.append([])
         pred_list.append([])
+
+        output_score, gradients, activations = None, None, None # edge case: no predictions in bdd2coco condition
+
         for output_score, box_corr, class_id in zip(output[0]['instances'].scores, output[0]['instances'].pred_boxes.tensor, output[0]['instances'].pred_classes):
             if self.class_names[class_id] in self.sel_classes:
             # if self.class_names[class_id] == 'person' or self.class_names[class_id] == 'rider':
@@ -489,9 +492,12 @@ class GradCAM:
                 adjusted_receptive_field_all.append(adjusted_receptive_field)
 
         self.feature = self.feature.detach().cpu()
-        output_score = output_score.detach().cpu()
-        gradients = gradients.detach().cpu()
-        activations = activations.detach().cpu()
+        if output_score is not None:
+            output_score = output_score.detach().cpu()
+        if gradients is not None:
+            gradients = gradients.detach().cpu()
+        if activations is not None:
+            activations = activations.detach().cpu()
 
         del output_score, gradients, activations
 
