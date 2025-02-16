@@ -1055,6 +1055,7 @@ if __name__ == '__main__':
         args.method = "fullgradcamraw"
         args.prob = "class"
         args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd2coco/rpn_saliency_maps_fasterrcnn/fullgradcamraw_vehicle"
+        args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
         args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922"
         args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_veh_id_task0922_mscoco_label"
 
@@ -1063,6 +1064,7 @@ if __name__ == '__main__':
         args.method = "fullgradcamraw"
         args.prob = "class"
         args.output_main_dir = f"{path_config.get('Paths','result_dir')}/bdd2coco/rpn_saliency_maps_fasterrcnn/fullgradcamraw_human"
+        args.coco_labels = f"{path_config.get('Paths','data_dir')}/mscoco/annotations/COCO_classes2.txt"
         args.img_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009"
         args.label_path = f"{path_config.get('Paths','data_dir')}/bdd/orib_hum_id_task1009_mscoco_label"
 
