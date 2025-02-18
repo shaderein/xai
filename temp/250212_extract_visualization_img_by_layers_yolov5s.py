@@ -10,7 +10,7 @@ import cv2
 import warnings, logging
 warnings.filterwarnings('ignore')
 
-logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/241127_extract_saliency_by_layers.log', 
+logging.basicConfig(filename='/home/jinhanz/cs/xai/logs/250212_extract_saliency_by_layers.log', 
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')

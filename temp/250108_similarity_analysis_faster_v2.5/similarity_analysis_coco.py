@@ -69,7 +69,7 @@ layer_name_mapping = ['backbone.res2.0.conv1','backbone.res2.0.conv2','backbone.
 skip_imgs = ['book_472678','clock_164363','hair drier_178028','hair drier_239041', 'kite_405279', 'mouse_513688', 'toaster_232348', 'toaster_453302', 'toothbrush_218439', 'traffic light_453841']
 expected_sample_num = 141
 
-for rescale_method in ['optimize_faithfulness_finer_v2.5','bilinear']:
+for rescale_method in ['optimize_faithfulness_finer_v2.5']:
     for is_act in ["xai_saliency","rpn_saliency","activation"]:
         # print(f"{is_act} {rescale_method}")
         # logging.info(f"[{is_act} {rescale_method}] loading AI attention")
@@ -111,20 +111,17 @@ for rescale_method in ['optimize_faithfulness_finer_v2.5','bilinear']:
                 for file in os.listdir(os.path.join(path_by_type,dir)):
                     if '.pth' not in file: continue
                     img_idx = file.replace('-res.pth','').replace('-res.pth','').replace('-res.png.pth','').replace('-res.jpg.pth','')
-                    try:
-                        mat = torch.load(os.path.join(path_by_type,dir,file))
-                        if mat['masks_ndarray'].sum()==1.5 and mat['masks_ndarray'][0,0]==1 and mat['masks_ndarray'][1,1]==0.5:
-                            failed_imgs[type][layer_name].append(img_idx)
-                            continue
-                        elif not np.any(mat['masks_ndarray']):
-                            failed_imgs[type][layer_name].append(img_idx)
-                            continue
-                        if np.any(np.isnan(mat['masks_ndarray'])):
-                            failed_imgs[type][layer_name].append(img_idx)
-                            continue
-                        xai_saliency_maps[type][layer_name][img_idx] = mat['masks_ndarray']
-                    except:
-                        logging.error(f"{type}\t{layer_name}\t{file}")
+                    mat = torch.load(os.path.join(path_by_type,dir,file))
+                    if mat['masks_ndarray'].sum()==1.5 and mat['masks_ndarray'][0,0]==1 and mat['masks_ndarray'][1,1]==0.5:
+                        failed_imgs[type][layer_name].append(img_idx)
+                        continue
+                    elif not np.any(mat['masks_ndarray']):
+                        failed_imgs[type][layer_name].append(img_idx)
+                        continue
+                    if np.any(np.isnan(mat['masks_ndarray'])):
+                        failed_imgs[type][layer_name].append(img_idx)
+                        continue
+                    xai_saliency_maps[type][layer_name][img_idx] = mat['masks_ndarray']
         logging.info("Finish loading AI attention")
 
         all_failed_imgs = set()
