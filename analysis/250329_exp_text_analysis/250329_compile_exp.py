@@ -26,5 +26,9 @@ for block in range(1, 5):
             
 
 final_data = pd.concat(all_data, ignore_index=True)
+# Remove trials with no explanation text. 
+# Due to the white-space-separated format, these trials have 
+#   label (string) mapped to the block name column
+final_data = final_data.dropna(subset=['label'])
 
-final_data.to_csv("compiled_exp_data.csv", index=False)
+final_data.to_csv("exp_mscoco.csv", index=False)

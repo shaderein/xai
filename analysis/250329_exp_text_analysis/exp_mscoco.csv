@@ -1920,13 +1920,11 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 49,39,1,a white electrical appliance for people use on hair after bath,1,prac,hair drier,hair drier_239041.png
 49,40,1,a white colour transportation for travelling on the river,1,prac,boat,boat_442822.png
 50,1,1,a object wearing in head obstacle rain,1,prac,umbrella,umbrella_180487.png
-50,2,1,1,prac,bed,,bed_491757.png
 50,3,1,a container hanging in arms ,1,prac,handbag,handbag_250127.png
 50,4,1,a smart computer,1,prac,laptop,laptop_482970.png
 50,5,1,source of water for the fire,1,prac,fire hydrant,fire hydrant_293071.png
 50,6,1,heat source for cooking,1,prac,oven,oven_446005.png
 50,7,1,a automobile for water movement,1,prac,boat,boat_442822.png
-50,8,1,1,prac,bottle,,bottle_385029.png
 50,9,1,a red fruit taste sweet,1,prac,apple,apple_216277.png
 50,10,1,a cute toy,1,prac,teddy bear,teddy bear_82180.png
 50,11,1,a gray mammal with big ears and long white ivorys,1,prac,elephant,elephant_97230.png
@@ -2355,7 +2353,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 60,34,1, animal with white and black color can be founf in zoo ,1,prac,zebra,zebra_449406.png
 60,35,1,you can put the wine inside it  like a cup colorless ,1,prac,wine glass,wine glass_25394.png
 60,36,1,use for surfing ,1,prac,surfboard,surfboard_554595.png
-60,37,1,1,prac,train,,train_539143.png
 60,38,1,put the food on it people will sit chat and eat round it,1,prac,dining table,dining table_385029.png
 60,39,1,put all the meat fruit and vegetable inside it and it can keep them fresh ,1,prac,refrigerator,refrigerator_536947.png
 60,40,1,friut  sweet and sour favour heathy food,1,prac,apple,apple_216277.png
@@ -2844,7 +2841,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 12,3,2,"empty for water, round open",1,prac,cup,cup_226171.png
 12,4,2,"empty space, round lid",1,prac,toilet,toilet_85576.png
 12,5,2,"round, slice, spices, sausage",1,prac,pizza,pizza_276285.png
-12,6,2,1,prac,parking meter,,parking meter_333956.png
 12,7,2,"brown color, ear, eye, tail, four legs",1,prac,cat,cat_558073.png
 12,8,2,"two wheels, lights seat, engiene",1,prac,motorcycle,motorcycle_462756.png
 12,9,2,"color, round",1,prac,frisbee,frisbee_357459.png
@@ -3745,7 +3741,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 35,24,2,a tool used to type words on the computer,1,prac,keyboard,keyboard_378099.png
 35,25,2,a toll uses to measure the fee for the car parking,1,prac,parking meter,parking meter_333956.png
 35,26,2,a very traditional italian food with dough cheese sausage and vagetables on it very delicious,1,prac,pizza,pizza_276285.png
-35,27,2,1,prac,backpack,,backpack_177065.png
 35,28,2,there are many words in it we can gain knowledge through reading it ,1,prac,book,book_472678.png
 35,29,2,used to heat food in instant seconds very convenient,1,prac,oven,oven_802.png
 35,30,2,used to contain wine for people to share a large bottle,1,prac,wine glass,wine glass_146489.png
@@ -4113,7 +4108,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 44,32,2,low in temperature ,1,prac,refrigerator,refrigerator_498463.png
 44,33,2,holding flowers,1,prac,vase,vase_521282.png
 44,34,2,using by a man to catch  the ba;;;,1,prac,baseball glove,baseball glove_515982.png
-44,35,2,1,prac,boat,,boat_178744.png
 44,36,2,italian food,1,prac,pizza,pizza_294831.png
 44,37,2,green rinks indide,1,prac,bottle,bottle_460929.png
 44,38,2,public tranaasport,1,prac,bus,bus_106048.png
@@ -4328,7 +4322,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 50,7,2,a silver case machine stores stuffs in low temperature,1,prac,refrigerator,refrigerator_498463.png
 50,8,2,a device connecting computer for clicking,1,prac,mouse,mouse_68765.png
 50,9,2,a tools with two wheels for transport,1,prac,bicycle,bicycle_426166.png
-50,10,2,1,prac,kite,,kite_24027.png
 50,11,2,a white drink or water container,1,prac,cup,cup_226171.png
 50,12,2,a plants with red and pink flowers,1,prac,potted plant,potted plant_473219.png
 50,13,2,a smart controller,1,prac,remote,remote_430286.png
@@ -6780,7 +6773,6 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 50,19,3,a man with a pair of glasses with wine shirt and spotty tie,1,prac,person,person_562243.png
 50,20,3,a american aero public transport vehicle,1,prac,airplane,airplane_338325.png
 50,21,3,a animal with brown hair and long neck,1,prac,giraffe,giraffe_287545.png
-50,22,3,1,prac,kite,,kite_405279.png
 50,23,3,a device showing time with roman letter,1,prac,clock,clock_164363.png
 50,24,3,a black honda brand vehicle,1,prac,car,car_227511.png
 50,25,3,a white case heating electric machine using microwave,1,prac,microwave,microwave_207538.png
@@ -7519,46 +7511,46 @@ subject_no,Trial_Index_,block,text,block_sequence,block_name,label,image
 7,38,4,round desert with a hole,1,prac,donut,donut_148957.png
 7,39,4,control ur tv wiht it remotely,1,prac,remote,remote_476810.png
 7,40,4,sweet desert with a hole,1,prac,donut,donut_109798.png
-a,sign,of,stop,1,prac,stop sign,
-1,prac,bicycle,,,,,
-1,prac,banana,,,,,
-1,prac,tennis racket,,,,,
-1,prac,frisbee,,,,,
-1,prac,train,,,,,
-1,prac,knife,,,,,
-1,prac,fire hydrant,,,,,
-1,prac,sports ball,,,,,
-1,prac,dog,,,,,
-1,prac,donut,,,,,
-1,prac,sheep,,,,,
-1,prac,bird,,,,,
-1,prac,car,,,,,
-1,prac,toilet,,,,,
-1,prac,cup,,,,,
-1,prac,surfboard,,,,,
-1,prac,carrot,,,,,
-1,prac,mouse,,,,,
-1,prac,motorcycle,,,,,
-1,prac,bed,,,,,
-1,prac,bench,,,,,
-sign,with,stop,1,prac,stop sign,,
-1,prac,couch,,,,,
-1,prac,bowl,,,,,
-1,prac,bird,,,,,
-1,prac,dining table,,,,,
-1,prac,sink,,,,,
-1,prac,tv,,,,,
-1,prac,remote,,,,,
-1,prac,baseball bat,,,,,
-1,prac,chair,,,,,
-1,prac,sandwich,,,,,
-1,prac,cell phone,,,,,
-1,prac,fork,,,,,
-1,prac,sheep,,,,,
-1,prac,elephant,,,,,
-1,prac,toothbrush,,,,,
-1,prac,broccoli,,,,,
-1,prac,donut,,,,,
+8,1,4,with a sign of 'stop',1,prac,stop sign,stop sign_724.png
+8,2,4,2 wheels can travel everywhere,1,prac,bicycle,bicycle_203317.png
+8,3,4,yellow with narrow,1,prac,banana,banana_290619.png
+8,4,4,with nets and round,1,prac,tennis racket,tennis racket_270908.png
+8,5,4,"round, usually playing with dogs",1,prac,frisbee,frisbee_139872.png
+8,6,4,"long , usually ride on the railways",1,prac,train,train_90155.png
+8,7,4,sharp and silver,1,prac,knife,knife_227985.png
+8,8,4,long with a hole for pouring fire,1,prac,fire hydrant,fire hydrant_344909.png
+8,9,4,"a ball, round",1,prac,sports ball,sports ball_22935.png
+8,10,4,will obey with folllow orders to its owners,1,prac,dog,dog_357459.png
+8,11,4,round with lots of toppings,1,prac,donut,donut_109798.png
+8,12,4,white with 4 legss,1,prac,sheep,sheep_410428.png
+8,13,4,"can stand on some trees , 4 legs",1,prac,bird,bird_100489.png
+8,14,4,"4 wheels, riding on the oad",1,prac,car,car_310072.png
+8,15,4,"can flush, a standing machine",1,prac,toilet,toilet_42276.png
+8,16,4,"transparent, can fill liquids",1,prac,cup,cup_323151.png
+8,17,4,"an oval object, for surfing",1,prac,surfboard,surfboard_52507.png
+8,18,4,orange vegetables,1,prac,carrot,carrot_287667.png
+8,19,4,white tools for the clicking on computers,1,prac,mouse,mouse_513688.png
+8,20,4,"motor vechile, faster than car or truck, riding on the road",1,prac,motorcycle,motorcycle_499622.png
+8,21,4,laying down furniture,1,prac,bed,bed_468245.png
+8,22,4,"laying down facilities, usually appear with grass, or at a park",1,prac,bench,bench_310072.png
+8,23,4,a sign with 'stop',1,prac,stop sign,stop sign_100283.png
+8,24,4,"a laying down object, usually appear on a living room",1,prac,couch,couch_29596.png
+8,25,4,"round with 2 layers, for putting food",1,prac,bowl,bowl_578871.png
+8,26,4,"can fly, a group of animals, with wings",1,prac,bird,bird_404568.png
+8,27,4,"for putting food, and having food with family together",1,prac,dining table,dining table_480122.png
+8,28,4,a white with some linkages to the drain,1,prac,sink,sink_51598.png
+8,29,4,"a big object, with screen, usually near the wall",1,prac,tv,tv_104666.png
+8,30,4,"can control a machine, with buttons",1,prac,remote,remote_476810.png
+8,31,4,"long sticks, for hitting baseballs",1,prac,baseball bat,baseball bat_270474.png
+8,32,4,"joints for withstanding on the floor, with a back",1,prac,chair,chair_190236.png
+8,33,4,"2 breads fold together, with toppings within 2 breads",1,prac,sandwich,sandwich_465430.png
+8,34,4,"square object, for searching internet, and communicate with others through social networking sites",1,prac,cell phone,cell phone_396729.png
+8,35,4,silver object with 4 sharps,1,prac,fork,fork_250766.png
+8,36,4,"an animal with all white furs, 4 legs",1,prac,sheep,sheep_278353.png
+8,37,4,"a long tail with flat ears, an animal",1,prac,elephant,elephant_83113.png
+8,38,4,a tool for brushing teeth,1,prac,toothbrush,toothbrush_160666.png
+8,39,4,green vegetables with lots of spotss,1,prac,broccoli,broccoli_61658.png
+8,40,4,"round bread, with toppings and sauces",1,prac,donut,donut_148957.png
 9,1,4,"digital screen, small metal box. ",1,prac,cell phone,cell phone_396729.png
 9,2,4,"pointy ends divided into four parts, stick under neath, metal, used to eat",1,prac,fork,fork_250766.png
 9,3,4,"contains water, conected to ground, looks like wierd cylinder",1,prac,fire hydrant,fire hydrant_344909.png
